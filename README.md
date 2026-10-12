@@ -85,9 +85,20 @@ source install/setup.bash
 ros2 launch asv_gazebo asv.launch.py                 # headless:=true for å kjøre uten vindu
 ros2 launch sim_interface demo.launch.py sim:=vrx_asv heading:=1.0 speed:=1.0
 ```
-Båten har to gondoler akter (`left`, `right`) og en baugthruster (`bow`), så `/control/thruster/bow/thrust` finnes i tillegg. Positiv baugthrust skyver baugen mot babord. Foreløpig har den bare IMU og GPS.
+Båten har to thrustere akter (`left`, `right`) som kan dreies, og en fast baugthruster (`bow`) som skyver sidelengs, så `/control/thruster/bow/thrust` finnes i tillegg. Foreløpig har den bare IMU og GPS. Leddvinklene, blant annet hvor thrusterne peker, publiseres på `/asv/joint_states`.
 
-Skroget brukes bare til visning. Fysikken står som tall i `models/asv/model.sdf`, og disse er anslag som må erstattes med ekte verdier: masse (45 kg, midt i spennet 40–50 kg), tyngdepunkt, treghetsmoment, maks thrust (50 N per gondol, 25 N i baugen), motstandskoeffisienter, og at gondolene kan dreies.
+Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/asv/meshes/`), så thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Fysikken står som tall i `models/asv/model.sdf`:
+
+| Størrelse | Verdi | Kilde |
+|---|---|---|
+| Lengde, bredde | 1,50 m, 0,53 m | målt fra STL-filen |
+| Masse | 45 kg | totalvekt med last er 40–50 kg |
+| Dypgang | 10,5 cm | følger av massen og skrogformen |
+| Maks thrust | 50 N per thruster akter, 25 N i baugen | anslag |
+| Dreiing av thrustere | ±90°, 2 rad/s | anslag |
+| Motstand i vannet | se kommentaren i `model.sdf` | regnet ut fra skrogformen, ikke målt |
+
+Målt i simulatoren med disse tallene: 0,77 m/s ved 10 N, 1,39 m/s ved 30 N og 2,63 m/s ved full kraft (100 N). Baugthrusteren alene dreier båten ca. 70 grader per sekund. Båten ligger høyt i vannet og har lite retningsstabilitet, så den er avhengig av at regulatoren styrer aktivt.
 
 ### Følge en bane
 `waypoint_follower` erstatter `fake_heading` og styrer båten gjennom en liste med punkter:
@@ -102,7 +113,7 @@ Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båt
 ## Status
 - Docker-imaget `vrx-sim:humble-garden` er bygget og testet. Simulatoren starter både med Gazebo-vindu og headless, og sensorene og motorene virker.
 - `sim_interface` er testet mot VRX, både med WAM-V og med vår egen båt.
-- Modellen av vår egen båt flyter og lar seg styre, men fysikken er anslag og er ikke tunet.
+- Modellen av vår egen båt flyter og lar seg styre. Motstanden i vannet er regnet ut fra skrogformen, og thrusterne er anslag til vi vet hvilke motorer som skal brukes.
 - Unity-backenden er ikke testet.
 - Grensesnittet mot control (topics, enheter, fortegn og timeout) er avtalt, se «Faste topics».
-- PX4-koblingen via uXRCE-DDS er ikke startet. Det er ikke avklart om PX4 skal stå mellom control og simulatoren.
+- Control sin kode kjører inne i PX4. Koblingen via uXRCE-DDS, med en oversetter til og fra topicene over, er ikke startet.

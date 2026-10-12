@@ -6,7 +6,7 @@ thruster_adapter:
     steerable: [left, right]
     thrust_topic: /asv/thrusters/{side}/thrust
     angle_topic: /asv/thrusters/{side}/pos
-    max_thrust: 50.0     # newton per gondol. Baugthrusteren begrenses til 25 N i modellen.
+    max_thrust: 50.0     # newton per thruster. Baugthrusteren begrenses til 25 N i modellen.
     max_angle: 1.5708    # radianer
     thrust_scale: 1.0
     angle_scale: 1.0

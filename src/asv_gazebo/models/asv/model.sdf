@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <!--
-  Vår egen ASV. Skroget (skrog10-1.stl) brukes bare til visning. Fysikken er beskrevet
-  med tall og enkle former under.
+  Vår egen ASV. Skrogfilen skrog10-1.stl er delt i skrog, thrusterhus og propeller
+  (meshes/), slik at thrusterne dreier og propellene snurrer synlig. Meshene brukes bare
+  til visning. Fysikken er beskrevet med tall og enkle former under.
 
   Målt fra STL-filen: lengde 1,50 m, bredde 0,53 m, kjøl ved z = -0,25, dekk ved z = ca. 0,12.
   Origo er midt i lengden, x peker forover, y mot babord og z opp.
 
   ANSLAG som må erstattes med ekte tall: masse, tyngdepunkt, treghetsmoment, maks thrust,
-  motstandskoeffisienter, og at gondolene kan dreies.
+  motstandskoeffisienter, og at thrusterne kan dreies.
 -->
 <sdf version="1.9">
   <model name="asv">
@@ -27,7 +28,7 @@
       <visual name="hull_visual">
         <geometry>
           <mesh>
-            <uri>model://asv/meshes/skrog10-1.stl</uri>
+            <uri>model://asv/meshes/hull.stl</uri>
             <!-- STL-filen er i millimeter -->
             <scale>0.001 0.001 0.001</scale>
           </mesh>
@@ -66,16 +67,60 @@
       </sensor>
     </link>
 
-    <!-- Gondoler akter. Plassering er lest av STL-filen: x = -0,70, y = +-0,215, z = -0,27. -->
+    <!--
+      Angrepspunkt for motstanden i vannet (se SimpleHydrodynamics under). Det ligger 6 cm bak
+      tyngdepunktet. ANSLAG: skrogets lateralplan har senter ved x = -0,05, men thrusterne og
+      stagene akter virker som finner og trekker det bakover. Ligger punktet foran
+      tyngdepunktet, blir båten retningsustabil og spinner rundt i høy fart.
+    -->
+    <link name="hydro_link">
+      <pose>-0.25 0 -0.15 0 0 0</pose>
+      <inertial>
+        <mass>0.1</mass>
+        <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+    </link>
+    <joint name="hydro_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>hydro_link</child>
+    </joint>
+
+    <!-- Thrustere akter. Propellakselen ligger ved x = -0,696, y = +-0,199, z = -0,268 (fra STL-filen). -->
     <link name="left_pod_link">
-      <pose>-0.70 0.215 -0.27 0 0 0</pose>
+      <pose>-0.696 0.199 -0.268 0 0 0</pose>
+      <visual name="left_pod_visual">
+        <geometry>
+          <mesh>
+            <uri>model://asv/meshes/left_pod.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.25 0.25 0.25 1</ambient>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
       <inertial>
         <mass>0.5</mass>
         <inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
       </inertial>
     </link>
     <link name="left_prop_link">
-      <pose>-0.70 0.215 -0.27 0 0 0</pose>
+      <pose>-0.696 0.199 -0.268 0 0 0</pose>
+      <visual name="left_rotor_visual">
+        <geometry>
+          <mesh>
+            <uri>model://asv/meshes/left_rotor.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.25 0.25 0.25 1</ambient>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
       <inertial>
         <mass>0.1</mass>
         <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
@@ -101,14 +146,40 @@
     </joint>
 
     <link name="right_pod_link">
-      <pose>-0.70 -0.215 -0.27 0 0 0</pose>
+      <pose>-0.696 -0.199 -0.268 0 0 0</pose>
+      <visual name="right_pod_visual">
+        <geometry>
+          <mesh>
+            <uri>model://asv/meshes/right_pod.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.25 0.25 0.25 1</ambient>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
       <inertial>
         <mass>0.5</mass>
         <inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
       </inertial>
     </link>
     <link name="right_prop_link">
-      <pose>-0.70 -0.215 -0.27 0 0 0</pose>
+      <pose>-0.696 -0.199 -0.268 0 0 0</pose>
+      <visual name="right_rotor_visual">
+        <geometry>
+          <mesh>
+            <uri>model://asv/meshes/right_rotor.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.25 0.25 0.25 1</ambient>
+          <diffuse>0.25 0.25 0.25 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
       <inertial>
         <mass>0.1</mass>
         <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
@@ -160,8 +231,10 @@
     <plugin name="vrx::PolyhedraBuoyancyDrag" filename="libPolyhedraBuoyancyDrag.so">
       <fluid_density>1000</fluid_density>
       <fluid_level>0.0</fluid_level>
-      <linear_drag>5.0</linear_drag>
-      <angular_drag>1.0</angular_drag>
+      <!-- Motstanden her er lik i alle retninger, så den er slått av. All motstand ligger i
+           SimpleHydrodynamics under, der hver retning har sine egne tall. -->
+      <linear_drag>0.0</linear_drag>
+      <angular_drag>0.0</angular_drag>
       <buoyancy name="hull_buoyancy">
         <link_name>base_link</link_name>
         <pose>-0.19 0 -0.051 0 0 0</pose>
@@ -174,26 +247,37 @@
       </wavefield>
     </plugin>
 
-    <!-- Motstand i vannet. ANSLAG, skalert ned fra VRX sin roboboat01. Må tunes. -->
+    <!--
+      Motstand i vannet. ANSLAG regnet ut fra skrogformen ved 45 kg (ikke målt på båten):
+      - forover (xUU): friksjon på våt flate 0,82 m2 (ca. 2), nedsenket akterspeil 0,5 x 0,1 m
+        (ca. 7,5), thrustere og stag (ca. 3,5), pluss litt for bølgemotstand.
+      - sideveis (yVV): 0,5 * rho * Cd * lateralplan, med Cd = 1,1 og lateralplan 0,149 m2,
+        pluss thrusterne.
+      - dreiing (nRR): 0,5 * rho * Cd * integralet av |x|^3 * dypgang langs skroget (0,0137 m5),
+        pluss thrusterne 0,70 m bak midten.
+      - hiv, rull og stamp (zW, kP, mQ): valgt slik at båten demper svingninger på noen få
+        perioder (dempingsforhold ca. 0,2-0,4).
+      Kreftene angriper i hydro_link.
+    -->
     <plugin name="vrx::SimpleHydrodynamics" filename="libSimpleHydrodynamics.so">
-      <link_name>base_link</link_name>
+      <link_name>hydro_link</link_name>
       <xDotU>0.0</xDotU>
       <yDotV>0.0</yDotV>
       <nDotR>0.0</nDotR>
-      <xU>5.0</xU>
-      <xUU>8.0</xUU>
-      <yV>30.0</yV>
-      <yVV>60.0</yVV>
-      <zW>150.0</zW>
+      <xU>2.0</xU>
+      <xUU>14.0</xUU>
+      <yV>5.0</yV>
+      <yVV>90.0</yVV>
+      <zW>400.0</zW>
       <kP>8.0</kP>
       <kPP>10.0</kPP>
-      <mQ>30.0</mQ>
+      <mQ>50.0</mQ>
       <mQQ>30.0</mQQ>
-      <nR>8.0</nR>
-      <nRR>10.0</nRR>
+      <nR>1.5</nR>
+      <nRR>11.0</nRR>
     </plugin>
 
-    <!-- Motorer. ANSLAG: 50 N per gondol og 25 N for baugthrusteren. -->
+    <!-- Motorer. ANSLAG: 50 N per thruster og 25 N for baugthrusteren. -->
     <plugin filename="gz-sim-thruster-system" name="gz::sim::systems::Thruster">
       <joint_name>left_prop_joint</joint_name>
       <namespace>asv</namespace>
@@ -228,7 +312,7 @@
       <min_thrust_cmd>-25</min_thrust_cmd>
     </plugin>
 
-    <!-- Dreiing av gondolene (radianer). ANSLAG: at gondolene kan dreies, og at de dreier 2 rad/s (cmd_max). -->
+    <!-- Dreiing av thrusterne (radianer). ANSLAG: at thrusterne kan dreies, og at de dreier 2 rad/s (cmd_max). -->
     <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>left_pod_joint</joint_name>
       <use_velocity_commands>true</use_velocity_commands>

@@ -14,9 +14,10 @@ Mål: alle på gruppen kjører samme VRX-miljø lokalt i Docker (Ubuntu 22.04, R
 - Ufarlige advarsler i loggen: `Unable to deserialize sdf::Model` og `GzCard: Cannot anchor item to self`.
 - `sim_interface` er testet headless mot VRX med WAM-V (2026-10-12): montering og bygg av `src/` virker, regulatoren holder ønsket heading, timeout setter thrust til 0, og thrust begrenses til 2353 N.
 - Unity-backenden (`config/unity.yaml`) er en mal med plassholdere og er ikke testet. 
-- Vår egen båt (`asv_gazebo`, skrog `skrog10-1.stl`) er testet i VRX 2026-10-12: den flyter stabilt og holder ønsket heading via `sim_interface` med `sim:=vrx_asv`. Fysikken er anslag (masse 45 kg, midt i spennet 40–50 kg, 50 N per gondol, 25 N baugthruster, motstandskoeffisienter) og er ikke tunet.
+- Vår egen båt (`asv_gazebo`) er testet i VRX 2026-10-12: den flyter på riktig høyde, holder kursen rett frem ved alle hastigheter, er symmetrisk mot babord og styrbord, og følger en bane via `sim_interface` med `sim:=vrx_asv`. Masse 45 kg (totalvekt med last er bekreftet til 40–50 kg). Motstanden er regnet ut fra skrogformen. Thrusterne (50 N akter, 25 N baug, dreiing ±90°) er anslag.
 - Grensesnittet mot control er avtalt med control-gruppen (2026-10-12): én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
-- PX4-koblingen via uXRCE-DDS er ikke startet. Det er ikke avklart om PX4 skal stå mellom control og simulatoren.
+- Control sin kode kjører inne i PX4 (uORB). Kommandoene må derfor ut gjennom uXRCE-DDS og oversettes til `/control/thruster/...`, og heading ref og heading true må inn samme vei. Ikke startet. Ukjent: PX4-versjon, hvilke uORB-meldinger som brukes, og om PX4 kjøres som SITL eller på et kort.
+- Autonomy skriver en ROS 2-node i C++ (radianer, bøyer i breddegrad og lengdegrad) som gir heading ref og heading true. Den skal erstatte `heading_node` og `waypoint_follower`. Simulatoren publiserer ikke bøyeposisjoner ennå.
 
 ## Byggeregler
 - Bygg med ett løp om gangen: `MAKEFLAGS="-j1" colcon build --merge-install --executor sequential --parallel-workers 1`. Parallell kompilering kan bruke opp minnet og fryse maskinen.
@@ -44,12 +45,18 @@ ros2 launch vrx_gz competition.launch.py world:=sydney_regatta   # headless:=tru
 ## Neste steg
 Gruppen har valgt å fortsette i VRX (2026-10-12). `config/unity.yaml` blir liggende som en utestet mal.
 
-1. Erstatt anslagene i `src/asv_gazebo/models/asv/model.sdf` med ekte tall for båten. Massen er viktigst.
-2. Rett motstanden i vannet: båten svinger for lett og vrir seg når den går sideveis.
+1. Publiser bøyeposisjoner fra simulatoren (breddegrad og lengdegrad), når autonomy har sagt hvilket topic og hvilken meldingstype noden deres leser.
+2. Sett inn ekte tall for thrusterne når motorene er valgt.
 3. Reguler farten (i dag er den en fast thrust), og la `waypoint_follower` følge linjen mellom punktene.
 4. Legg lidar og kamera på vår egen båt.
-5. Avklar med control om PX4 lager thruster-kommandoene, og koble til via uXRCE-DDS.
-6. Bytt ut `waypoint_follower` og `stub_controller` med ekte autonomy og control.
+5. Koble til PX4 via uXRCE-DDS når control har svart på versjon og meldinger.
+
+## Ting som er lette å gå i
+- Motstanden i vannet angriper i `hydro_link`. Flyttes det punktet foran tyngdepunktet, blir båten retningsustabil og spinner rundt i høy fart.
+- `linear_drag` og `angular_drag` i oppdriftsmodulen er lik i alle retninger og skal stå på 0. All motstand ligger i `SimpleHydrodynamics`.
+- Et ledd som kjøres helt i endestopp, låser seg. Derfor er leddgrensen for thrusterne (±1,75) videre enn det `thruster_adapter` tillater (±1,5708).
+- Ved omregning fra GPS til meter må cos(breddegrad) regnes med en fast referansebredde. Ellers gir bevegelse nord/sør flere meter falsk forflytning øst/vest.
+- En modell som er fjernet fra en kjørende simulator, lar seg ikke sette inn igjen med samme navn. Start simulatoren på nytt.
 
 ## Arkitektur
 autonomy (ønsket kurs og fart) → control (thrust og vinkel) → `sim_interface` → båten i sim.
