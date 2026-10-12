@@ -1,0 +1,8 @@
+# Eksempelbane i sydney_regatta, i åpent vann nord for startstedet til båten.
+# Punktene er x, y i meter (øst, nord) fra der båten er når waypoint_follower starter.
+waypoint_follower:
+  ros__parameters:
+    waypoints: [6.0, 10.0,   16.0, 23.0,   -6.0, 24.0,   4.0, 8.0]
+    speed: 1.0
+    radius: 2.0
+    loop: true

@@ -1,0 +1,30 @@
+# Backend for VRX (Gazebo Garden) med vår egen ASV fra pakken asv_gazebo.
+# Grensene er ANSLAG og må settes til motorenes ekte verdier.
+thruster_adapter:
+  ros__parameters:
+    thrusters: [left, right, bow]
+    steerable: [left, right]
+    thrust_topic: /asv/thrusters/{side}/thrust
+    angle_topic: /asv/thrusters/{side}/pos
+    max_thrust: 50.0     # newton per gondol. Baugthrusteren begrenses til 25 N i modellen.
+    max_angle: 1.5708    # radianer
+    thrust_scale: 1.0
+    angle_scale: 1.0
+    timeout: 0.5
+
+stub_controller:
+  ros__parameters:
+    kp: 30.0               # newton per radian heading-feil
+    thrust_per_mps: 15.0   # newton per m/s ønsket fart
+
+sensor_relay:
+  ros__parameters:
+    inputs:
+      - /asv/sensors/imu
+      - /asv/sensors/gps
+    outputs:
+      - /autonomy/imu
+      - /autonomy/gps/fix
+    types:
+      - sensor_msgs/msg/Imu
+      - sensor_msgs/msg/NavSatFix

@@ -27,6 +27,7 @@ setup(
             'heading_node = sim_interface.heading_node:main',
             'fake_heading = sim_interface.fake_heading:main',
             'stub_controller = sim_interface.stub_controller:main',
+            'waypoint_follower = sim_interface.waypoint_follower:main',
         ],
     },
 )

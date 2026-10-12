@@ -9,6 +9,11 @@ thruster_adapter:
     angle_scale: 1.0     # VRX bruker radianer
     timeout: 0.5
 
+stub_controller:
+  ros__parameters:
+    kp: 300.0              # newton per radian heading-feil
+    thrust_per_mps: 200.0  # newton per m/s ønsket fart
+
 sensor_relay:
   ros__parameters:
     inputs:

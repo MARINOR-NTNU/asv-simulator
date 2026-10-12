@@ -12,8 +12,11 @@ def generate_launch_description():
     def number(name):
         return ParameterValue(LaunchConfiguration(name), value_type=float)
 
+    config = PathJoinSubstitution(
+        [FindPackageShare('sim_interface'), 'config', [LaunchConfiguration('sim'), '.yaml']])
+
     return LaunchDescription([
-        DeclareLaunchArgument('sim', default_value='vrx', choices=['vrx', 'unity']),
+        DeclareLaunchArgument('sim', default_value='vrx', choices=['vrx', 'vrx_asv', 'unity']),
         DeclareLaunchArgument('heading', default_value='0.0'),
         DeclareLaunchArgument('speed', default_value='1.0'),
         DeclareLaunchArgument('sweep_rate', default_value='0.0'),
@@ -28,5 +31,5 @@ def generate_launch_description():
             'sweep_rate': number('sweep_rate'),
         }]),
         Node(package='sim_interface', executable='stub_controller',
-             parameters=[{'use_sim_time': True}]),
+             parameters=[config, {'use_sim_time': True}]),
     ])

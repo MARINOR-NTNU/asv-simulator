@@ -40,6 +40,7 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `sensor_relay` | Sender simulatorens sensor-topics videre til `/autonomy/...`. |
 | `heading_node` | Regner ut heading fra IMU-en. |
 | `fake_heading` | Midlertidig erstatning for autonomy: sender ønsket heading og fart. |
+| `waypoint_follower` | Midlertidig erstatning for autonomy: følger en bane av punkter. |
 | `stub_controller` | Midlertidig erstatning for control: P-regulator fra heading-feil til thrust. |
 
 ### Faste topics
@@ -70,11 +71,31 @@ ros2 launch sim_interface demo.launch.py sim:=vrx heading:=2.0 speed:=1.0
 ```
 Pakken må bygges på nytt hver gang containeren startes med `--rm`, og etter endringer i koden.
 
+### Vår egen båt i VRX
+Pakken `src/asv_gazebo` inneholder en Gazebo-modell av vår egen båt (`models/asv`), bygget rundt skroget `skrog10-1.stl`. Start den i stedet for WAM-V slik:
+```bash
+colcon build --merge-install --packages-select asv_gazebo sim_interface
+source install/setup.bash
+ros2 launch asv_gazebo asv.launch.py                 # headless:=true for å kjøre uten vindu
+ros2 launch sim_interface demo.launch.py sim:=vrx_asv heading:=1.0 speed:=1.0
+```
+Båten har to gondoler akter (`left`, `right`) og en baugthruster (`bow`), så `/control/thruster/bow/thrust` finnes i tillegg. Positiv baugthrust skyver baugen mot babord. Foreløpig har den bare IMU og GPS.
+
+Skroget brukes bare til visning. Fysikken står som tall i `models/asv/model.sdf`, og disse er anslag som må erstattes med ekte verdier: masse (45 kg, midt i spennet 40–50 kg), tyngdepunkt, treghetsmoment, maks thrust (50 N per gondol, 25 N i baugen), motstandskoeffisienter, og at gondolene kan dreies.
+
+### Følge en bane
+`waypoint_follower` erstatter `fake_heading` og styrer båten gjennom en liste med punkter:
+```bash
+ros2 launch sim_interface path.launch.py sim:=vrx_asv path:=path_demo
+```
+Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båten er når noden starter. `radius` er hvor nær båten må komme et punkt, og `loop: true` kjører banen om igjen. Noden publiserer også båtens posisjon i meter på `/autonomy/position`. Banen tar ikke hensyn til land eller hindringer.
+
 ### Bytte simulator
-`sim:=unity` laster `config/unity.yaml` i stedet for `config/vrx.yaml`. Unity-filen er en mal med plassholdere og er ikke testet. En ny simulator trenger bare en ny yaml-fil, så lenge den publiserer `/clock` og standard ROS-meldinger i ROS-konvensjon (ENU, x frem, z opp).
+`sim:=` velger hvilken fil i `config/` som lastes: `vrx` (WAM-V), `vrx_asv` (vår båt) eller `unity`. Unity-filen er en mal med plassholdere og er ikke testet. En ny simulator trenger bare en ny yaml-fil, så lenge den publiserer `/clock` og standard ROS-meldinger i ROS-konvensjon (ENU, x frem, z opp).
 
 ## Status
 - Docker-imaget `vrx-sim:humble-garden` er bygget og testet. Simulatoren starter både med Gazebo-vindu og headless, og sensorene og motorene virker.
-- `sim_interface` er testet mot VRX med WAM-V. Vår egen båtmodell er ikke laget ennå.
+- `sim_interface` er testet mot VRX, både med WAM-V og med vår egen båt.
+- Modellen av vår egen båt flyter og lar seg styre, men fysikken er anslag og er ikke tunet.
 - Unity-backenden er ikke testet.
 - PX4-koblingen via uXRCE-DDS er ikke startet, fordi vi venter på svar fra control.
