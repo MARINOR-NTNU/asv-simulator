@@ -46,7 +46,7 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 ### Faste topics
 | Topic | Type | Enhet |
 |---|---|---|
-| `/control/thruster/{left,right}/thrust` | `std_msgs/Float64` | newton |
+| `/control/thruster/{left,right,bow}/thrust` | `std_msgs/Float64` | newton |
 | `/control/thruster/{left,right}/angle` | `std_msgs/Float64` | radianer |
 | `/autonomy/heading` | `std_msgs/Float64` | radianer, ENU (0 = øst, positiv mot klokka) |
 | `/autonomy/desired/heading` | `std_msgs/Float64` | radianer, ENU |
@@ -55,6 +55,12 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `/autonomy/gps/fix` | `sensor_msgs/NavSatFix` | |
 | `/autonomy/lidar/points` | `sensor_msgs/PointCloud2` | |
 | `/autonomy/camera/front_left/image_raw` | `sensor_msgs/Image` | |
+
+Kommandoene fra control er avtalt med control-gruppen (2026-10-12):
+- Én melding per tall, på topicene over. `bow` finnes bare på vår egen båt.
+- Positiv thrust skyver båten forover. Positiv baugthrust skyver baugen mot babord.
+- Vinkel 0 er rett frem, og positiv vinkel dreier thrusteren mot babord.
+- Control må sende oftere enn hvert 0,5 sekund. Uten ny kommando innen den tiden settes thrusten for den motoren til 0.
 
 ### Bygg og kjør
 Start containeren som over, og kjør simulatoren i den. Åpne så et nytt skall i samme container med `docker exec -it <navn> bash`:
@@ -98,4 +104,5 @@ Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båt
 - `sim_interface` er testet mot VRX, både med WAM-V og med vår egen båt.
 - Modellen av vår egen båt flyter og lar seg styre, men fysikken er anslag og er ikke tunet.
 - Unity-backenden er ikke testet.
-- PX4-koblingen via uXRCE-DDS er ikke startet, fordi vi venter på svar fra control.
+- Grensesnittet mot control (topics, enheter, fortegn og timeout) er avtalt, se «Faste topics».
+- PX4-koblingen via uXRCE-DDS er ikke startet. Det er ikke avklart om PX4 skal stå mellom control og simulatoren.

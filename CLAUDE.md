@@ -15,7 +15,8 @@ Mål: alle på gruppen kjører samme VRX-miljø lokalt i Docker (Ubuntu 22.04, R
 - `sim_interface` er testet headless mot VRX med WAM-V (2026-10-12): montering og bygg av `src/` virker, regulatoren holder ønsket heading, timeout setter thrust til 0, og thrust begrenses til 2353 N.
 - Unity-backenden (`config/unity.yaml`) er en mal med plassholdere og er ikke testet. 
 - Vår egen båt (`asv_gazebo`, skrog `skrog10-1.stl`) er testet i VRX 2026-10-12: den flyter stabilt og holder ønsket heading via `sim_interface` med `sim:=vrx_asv`. Fysikken er anslag (masse 45 kg, midt i spennet 40–50 kg, 50 N per gondol, 25 N baugthruster, motstandskoeffisienter) og er ikke tunet.
-- PX4-koblingen via uXRCE-DDS er ikke startet, fordi vi venter på svar fra control.
+- Grensesnittet mot control er avtalt med control-gruppen (2026-10-12): én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
+- PX4-koblingen via uXRCE-DDS er ikke startet. Det er ikke avklart om PX4 skal stå mellom control og simulatoren.
 
 ## Byggeregler
 - Bygg med ett løp om gangen: `MAKEFLAGS="-j1" colcon build --merge-install --executor sequential --parallel-workers 1`. Parallell kompilering kan bruke opp minnet og fryse maskinen.
