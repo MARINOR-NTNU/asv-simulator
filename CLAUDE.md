@@ -5,14 +5,15 @@ Mål: alle på gruppen kjører samme VRX-miljø lokalt i Docker (Ubuntu 22.04, R
 ## Filer
 - `Dockerfile` bygger på `osrf/ros:humble-desktop`. Den installerer `gz-garden`, kloner `vrx` og `ros_gz` (begge `-b humble`) til `/root/vrx_ws/src` og bygger med colcon.
 - `entrypoint.sh` sourcer `/opt/ros/humble` og `/root/vrx_ws/install`.
-- `src/` inneholder våre egne ROS 2-pakker. Den monteres inn som `/root/vrx_ws/src/mysrc`. Den er tom foreløpig.
+- `src/` inneholder våre egne ROS 2-pakker. Den monteres inn som `/root/vrx_ws/src/mysrc`. Foreløpig ligger `sim_interface` der.
 
 ## Status
 - Imaget `vrx-sim:humble-garden` er bygget, og alle 18 colcon-pakkene fullførte.
 - Testet headless: alle sensorer publiserer, og båten beveger seg når den får thrust.
 - Testet med Gazebo-vindu via X11: containeren starter med vinduet oppe.
 - Ufarlige advarsler i loggen: `Unable to deserialize sdf::Model` og `GzCard: Cannot anchor item to self`.
-- `sim_interface` (`thruster_adapter`) er under arbeid og finnes ikke i repoet ennå.
+- `sim_interface` er testet headless mot VRX med WAM-V (2026-10-12): montering og bygg av `src/` virker, regulatoren holder ønsket heading, timeout setter thrust til 0, og thrust begrenses til 2353 N.
+- Unity-backenden (`config/unity.yaml`) er en mal med plassholdere og er ikke testet. Vår egen båtmodell er ikke laget.
 - PX4-koblingen via uXRCE-DDS er ikke startet, fordi vi venter på svar fra control.
 
 ## Byggeregler
@@ -35,19 +36,24 @@ docker run -it --rm --net=host \
 ros2 launch vrx_gz competition.launch.py world:=sydney_regatta   # headless:=true for å kjøre uten vindu
 ```
 - Sjekk at ingen gamle simulatorer kjører før du starter: `docker ps` og `pgrep -af "gz sim"`.
-- Volumet for `src/` er ikke testet ennå.
+- Bygg egne pakker i containeren: `colcon build --merge-install --packages-select sim_interface`. Bygget ligger i containeren og forsvinner med `--rm`.
+- Hvis `ros2 topic echo` feiler med `!rclpy.ok()`, har ros2-daemonen hengt seg. Bruk `--no-daemon`.
 
 ## Neste steg
-1. Lag `sim_interface` i `src/` og bygg den i containeren.
-2. Test montering og bygg av `src/`.
-3. Koble til PX4 via uXRCE-DDS når control har svart.
+1. Avklar med control om PX4 lager thruster-kommandoene, og koble til via uXRCE-DDS.
+2. Fyll inn `config/unity.yaml` når Unity-simulatoren er valgt.
+3. Bytt ut `fake_heading` og `stub_controller` med ekte autonomy og control.
 
-## Arkitektur (planlagt)
-autonomy (ønsket kurs og fart) → control (thrust og vinkel) → båten i sim.
+## Arkitektur
+autonomy (ønsket kurs og fart) → control (thrust og vinkel) → `sim_interface` → båten i sim.
 
-Pakken `sim_interface`:
-- `thruster_adapter`: `/control/thruster/{left,right}/{thrust,angle}` (Float64, N / rad) → `/wamv/thrusters/{left,right}/{thrust,pos}`, med begrensning (clamp) og timeout som setter thrust til 0 når kommandoene stopper.
-- Relays fra sim-topics til stabile `/autonomy/...`-topics.
+Autonomy og control bruker bare de faste topicene `/control/...` og `/autonomy/...` (se README). Alt som er spesifikt for én simulator ligger i `src/sim_interface/config/<sim>.yaml`, og velges med `sim:=vrx` eller `sim:=unity`. Ikke bruk `/wamv/...`-topics direkte i nodene.
+
+Noder i `sim_interface`:
+- `thruster_adapter`: `/control/thruster/{left,right}/{thrust,angle}` (Float64, N / rad) → simulatorens motorer, med begrensning (clamp) og timeout.
+- `sensor_relay`: sim-topics → `/autonomy/...`.
+- `heading_node`: `/autonomy/imu` → `/autonomy/heading` (yaw i radianer, ENU).
+- `fake_heading` og `stub_controller`: midlertidige erstatninger for autonomy og control.
 
 Alle noder kjører med `use_sim_time:=true`.
 

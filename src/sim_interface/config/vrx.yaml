@@ -1,0 +1,28 @@
+# Backend for VRX (Gazebo Garden) med WAM-V. Topics og grenser er sjekket mot simulatoren.
+thruster_adapter:
+  ros__parameters:
+    thrust_topic: /wamv/thrusters/{side}/thrust
+    angle_topic: /wamv/thrusters/{side}/pos
+    max_thrust: 2353.0   # newton per motor (max_thrust_cmd i VRX)
+    max_angle: 1.5708    # radianer. Leddet tåler +-pi, men vi begrenser til +-90 grader.
+    thrust_scale: 1.0    # VRX bruker newton
+    angle_scale: 1.0     # VRX bruker radianer
+    timeout: 0.5
+
+sensor_relay:
+  ros__parameters:
+    inputs:
+      - /wamv/sensors/imu/imu/data
+      - /wamv/sensors/gps/gps/fix
+      - /wamv/sensors/lidars/lidar_wamv_sensor/points
+      - /wamv/sensors/cameras/front_left_camera_sensor/image_raw
+    outputs:
+      - /autonomy/imu
+      - /autonomy/gps/fix
+      - /autonomy/lidar/points
+      - /autonomy/camera/front_left/image_raw
+    types:
+      - sensor_msgs/msg/Imu
+      - sensor_msgs/msg/NavSatFix
+      - sensor_msgs/msg/PointCloud2
+      - sensor_msgs/msg/Image
