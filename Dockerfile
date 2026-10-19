@@ -30,6 +30,21 @@ RUN apt-get update \
 RUN . /opt/ros/humble/setup.sh \
  && MAKEFLAGS="-j1" colcon build --merge-install --executor sequential --parallel-workers 1
 
+# Micro XRCE-DDS Agent v2.4.2 (v2-protokollen PX4 bruker som standard, anbefalt for Humble).
+# Bygges mot Fast-DDS fra ROS Humble, fordi standardbygget laster ned en Fast-DDS-gren som ikke finnes lenger.
+RUN . /opt/ros/humble/setup.sh \
+ && git clone --depth 1 -b v2.4.2 https://github.com/eProsima/Micro-XRCE-DDS-Agent.git /tmp/xrce_agent \
+ && cmake -S /tmp/xrce_agent -B /tmp/xrce_agent/build -DUAGENT_USE_SYSTEM_FASTDDS=ON -DUAGENT_USE_SYSTEM_FASTCDR=ON \
+ && MAKEFLAGS="-j1" cmake --build /tmp/xrce_agent/build \
+ && cmake --install /tmp/xrce_agent/build \
+ && ldconfig \
+ && rm -rf /tmp/xrce_agent
+
+# PX4-meldingene fra control (se px4_msgs/SOURCE.txt). Eget lag etter VRX, så VRX ikke bygges på nytt.
+COPY px4_msgs /root/vrx_ws/src/px4_msgs
+RUN . /opt/ros/humble/setup.sh \
+ && MAKEFLAGS="-j1" colcon build --merge-install --executor sequential --parallel-workers 1 --packages-select px4_msgs
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

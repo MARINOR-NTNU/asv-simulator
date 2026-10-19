@@ -1,0 +1,6 @@
+# Generert av scripts/sync_px4_msgs.sh. Ikke rediger meldingene for hånd.
+fork: https://github.com/MARINOR-NTNU/Flightcontroller-px4.git
+origin/main: 561862c86a
+origin/feature/control/motor_output_and_switch: 95a0717de3 (msg/MotorOutput.msg)
+origin/feature/control/motor_output_and_switch: 95a0717de3 (msg/RcControlMode.msg)
+origin/feature/control/seapathDriver: 5df9df6e63 (msg/SeapathData.msg)

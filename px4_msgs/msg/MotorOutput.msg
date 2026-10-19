@@ -1,0 +1,7 @@
+uint64 timestamp
+
+float32 forward_propeller_thrust
+float32 port_side_angle
+float32 port_side_thrust
+float32 starboard_angle
+float32 starboard_thrust
