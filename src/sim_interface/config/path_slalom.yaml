@@ -1,0 +1,12 @@
+# Bane gjennom slalåmløypa fra asv_gazebo/launch/slalom.launch.py, i sydney_regatta.
+# Punktene er x, y i meter (øst, nord) fra startstedet til båten (x = -532, y = 162 i verden),
+# som står fast i origin. Da treffer banen løypa selv om båten har drevet før start.
+# Nordover i sikksakk 3 m på hver side av bøyene i x = 0, så tilbake sørover i x = 12.
+waypoint_follower:
+  ros__parameters:
+    origin: [-33.7227623, 150.6739960]
+    waypoints: [3.0, 4.0,   -3.0, 11.0,   3.0, 18.0,   -3.0, 25.0,
+                12.0, 27.0,   12.0, 1.0,   3.0, -1.0]
+    speed: 1.0
+    radius: 1.5
+    loop: true

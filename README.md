@@ -107,6 +107,14 @@ ros2 launch sim_interface path.launch.py sim:=vrx_asv path:=path_demo
 ```
 Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båten er når noden starter. `radius` er hvor nær båten må komme et punkt, og `loop: true` kjører banen om igjen. Noden publiserer også båtens posisjon i meter på `/autonomy/position`. Banen tar ikke hensyn til land eller hindringer.
 
+### Slalåmløype
+`asv_gazebo/launch/slalom.launch.py` fjerner bøyerekka som følger med verdenen og legger ut fire bøyer på linje nordover fra startstedet, 7 m fra hverandre. `config/path_slalom.yaml` er en bane som kjører sikksakk mellom dem (3 m på hver side), og så tilbake sørover øst for løypa. Start den mens simulatoren kjører:
+```bash
+ros2 launch asv_gazebo slalom.launch.py
+ros2 launch sim_interface path.launch.py sim:=vrx_asv path:=path_slalom
+```
+Banen har et fast nullpunkt (`origin`, breddegrad og lengdegrad for startstedet), så den treffer løypa selv om båten har drevet før start. Uten `origin` regnes punktene fra der båten er når noden starter.
+
 ### Bytte simulator
 `sim:=` velger hvilken fil i `config/` som lastes: `vrx` (WAM-V), `vrx_asv` (vår båt) eller `unity`. Unity-filen er en mal med plassholdere og er ikke testet. En ny simulator trenger bare en ny yaml-fil, så lenge den publiserer `/clock` og standard ROS-meldinger i ROS-konvensjon (ENU, x frem, z opp).
 

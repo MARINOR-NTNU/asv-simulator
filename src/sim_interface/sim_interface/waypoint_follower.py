@@ -15,15 +15,18 @@ class WaypointFollower(Node):
 
     def __init__(self):
         super().__init__('waypoint_follower')
-        # Punktene er x1, y1, x2, y2, ... i meter (øst, nord) fra der båten er når noden starter.
+        # Punktene er x1, y1, x2, y2, ... i meter (øst, nord) fra nullpunktet (se origin).
         flat = self.declare_parameter('waypoints', [0.0, 0.0]).value
         self.waypoints = list(zip(flat[0::2], flat[1::2]))
         self.speed = self.declare_parameter('speed', 1.0).value
         # Et punkt regnes som nådd når båten er nærmere enn radius (meter).
         self.radius = self.declare_parameter('radius', 2.0).value
         self.loop = self.declare_parameter('loop', False).value
-
-        self.origin = None
+        # Fast nullpunkt for banen som [breddegrad, lengdegrad]. [0, 0] betyr der båten er
+        # når noden starter. Med fast nullpunkt havner banen riktig selv om båten har drevet.
+        origin = self.declare_parameter('origin', [0.0, 0.0]).value
+        self.origin = tuple(origin) if any(origin) else None
+        self.started = False
         self.index = 0
         self.done = False
         self.heading = 0.0
@@ -42,14 +45,16 @@ class WaypointFollower(Node):
 
     def to_local(self, fix):
         # Flat jord rundt startpunktet. Godt nok for baner på noen hundre meter.
-        east = math.radians(fix.longitude - self.origin.longitude) \
-            * 6378137.0 * math.cos(math.radians(self.origin.latitude))
-        north = math.radians(fix.latitude - self.origin.latitude) * 6378137.0
+        lat, lon = self.origin
+        east = math.radians(fix.longitude - lon) * 6378137.0 * math.cos(math.radians(lat))
+        north = math.radians(fix.latitude - lat) * 6378137.0
         return east, north
 
     def on_gps(self, fix):
-        if self.origin is None:
-            self.origin = fix
+        if not self.started:
+            self.started = True
+            if self.origin is None:
+                self.origin = (fix.latitude, fix.longitude)
             self.get_logger().info(f'Start. Følger {len(self.waypoints)} punkter.')
         x, y = self.to_local(fix)
         self.position_pub.publish(Point(x=x, y=y))
