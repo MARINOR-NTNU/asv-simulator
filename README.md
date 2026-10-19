@@ -186,6 +186,10 @@ Når Gazebo-vinduet åpnes, kan Ubuntu si at programmet ikke svarer mens verdene
 
 **4. Sjekk at det virker**, i et nytt skall i simulator-containeren:
 ```bash
+ros2 run sim_interface px4_check
+```
+Den sjekker hvert ledd i rekkefølge (simulatoren, broene, agenten, om PX4 er koblet til, om MotorOutput og SeapathData går, og om tallene ser ekte ut), og sier hva som mest sannsynlig er galt ved første feil. For å se dataene selv:
+```bash
 ros2 topic echo /fmu/out/motor_output    # kommer det noe, sender PX4 til simulatoren
 ros2 topic echo /fmu/in/seapath_data     # det simulatoren sender til PX4 (50 Hz)
 ```

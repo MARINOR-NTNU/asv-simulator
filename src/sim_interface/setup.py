@@ -31,6 +31,7 @@ setup(
             'waypoint_follower = sim_interface.waypoint_follower:main',
             'px4_motor_bridge = sim_interface.px4_motor_bridge:main',
             'px4_seapath_bridge = sim_interface.px4_seapath_bridge:main',
+            'px4_check = sim_interface.px4_check:main',
         ],
     },
 )

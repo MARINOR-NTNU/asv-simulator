@@ -22,6 +22,8 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
 | `main` | `RcControlMode.msg` | `rcpublisher` |
 
 - `dp_controller` og `switch_vel_heading` finnes ikke på GitHub.
+- Per 2026-10-19 er `transit_controller`, `switch_wrench` og `thrust_allocator` skjeletter fra PX4 sin modulmal. `transit_controller` sender testtall (1 + n, 2 + n, 3 + n) og leser ingen sensorer, `switch_wrench` sender dem videre, og `thrust_allocator` skriver dem bare til loggen og publiserer ingen MotorOutput. Kjeden er altså ikke koblet sammen, og enhetene i MotorOutput er ikke bestemt. Vi har foreslått newton og radianer med kontraktens fortegn.
+- `thrust_allocator`-grenen slår på modulene i `boards/px4/sitl/sih.px4board`, så control kjører trolig PX4 på PC som `px4_sitl_sih` (SITL med PX4 sin innebygde simulator, uten Gazebo). Det går etter det vi vet på sanntid (ikke bekreftet).
 - Motor-committen deres endrer `boards/px4/fmu-v6c`, så kortet er trolig en Pixhawk 6C (ikke bekreftet).
 
 ## Meldingene
@@ -48,6 +50,12 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
 - Innstillingene ligger i `config/px4_bridge.yaml`. Bare broene, til en simulator som allerede kjører: `ros2 launch sim_interface px4_bridge.launch.py`.
 - Testet 2026-10-19 med `ros2 topic pub` på `/fmu/out/motor_output`, både med WAM-V og med vår båt (`forward_thruster:=bow`). Hvert felt når riktig motor, timeouten setter thrust til 0, og i SeapathData stemmer heading med `heading_node` og fartsretningen med baugen (innen 0,3°). Heave svinger rundt 0 (±0,10 m i bølgene). Ikke testet mot ekte PX4.
 - Målt med kontraktens fortegn: positiv vinkel på akterthrusterne snur båten med klokka (mot styrbord), og positiv baugthrust snur den mot klokka (baugen mot babord).
+
+## Diagnose: `px4_check`
+`ros2 run sim_interface px4_check` sjekker koblingen ledd for ledd og sier hvor den stopper: simulatoren og broene, agenten (prosess og UDP-port), om PX4 er koblet til, om PX4 sender MotorOutput og tar imot SeapathData, og om tallene i MotorOutput er plassholdere (0 og ±1), rå RC-verdier (ca. 1000–2000) eller NaN.
+
+- PX4 sine forbindelser lages av agenten, som ikke er en ROS-node, så de vises som `_NODE_NAME_UNKNOWN_`. Det er slik verktøyet ser at PX4 er koblet til. Testet 2026-10-19 uten PX4 og med `ros2 topic pub`, ikke mot ekte PX4.
+- Feil som bare følger av en feil lenger opp i kjeden, vises som «følger av …», så det er den første ✗ som skal rettes.
 
 ## CCommand (kommer)
 Control sin kjede starter med `CCommand`, som på båten kommer over MAVLink fra companion-maskinen. Når autonomy-noden og mottakeren hos control finnes, trengs en bro fra `/autonomy/desired/{heading,speed}` til `CCommand`. Da kan autonomy-noden kjøre uendret mot både `control:=stub` og `control:=px4`. Om broen skal gå over MAVLink eller XRCE-DDS, er ikke avklart.
