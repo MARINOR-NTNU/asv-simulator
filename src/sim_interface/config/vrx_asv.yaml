@@ -15,7 +15,11 @@ thruster_adapter:
 stub_controller:
   ros__parameters:
     kp: 30.0               # newton per radian heading-feil
-    thrust_per_mps: 15.0   # newton per m/s ønsket fart
+    # Fart, per motor: foroverkobling pluss PI-regulator på målt fart.
+    thrust_per_mps: 8.0    # newton per m/s ønsket fart
+    speed_kp: 20.0         # newton per m/s fartsfeil
+    speed_ki: 10.0         # newton per m/s fartsfeil per sekund
+    max_thrust: 50.0       # newton
 
 sensor_relay:
   ros__parameters:

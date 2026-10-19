@@ -25,6 +25,7 @@ setup(
             'thruster_adapter = sim_interface.thruster_adapter:main',
             'sensor_relay = sim_interface.sensor_relay:main',
             'heading_node = sim_interface.heading_node:main',
+            'speed_node = sim_interface.speed_node:main',
             'fake_heading = sim_interface.fake_heading:main',
             'stub_controller = sim_interface.stub_controller:main',
             'waypoint_follower = sim_interface.waypoint_follower:main',

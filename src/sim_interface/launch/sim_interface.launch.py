@@ -15,4 +15,5 @@ def generate_launch_description():
         Node(package='sim_interface', executable='thruster_adapter', parameters=params),
         Node(package='sim_interface', executable='sensor_relay', parameters=params),
         Node(package='sim_interface', executable='heading_node', parameters=params),
+        Node(package='sim_interface', executable='speed_node', parameters=params),
     ])
