@@ -11,7 +11,7 @@ def generate_launch_description():
         [FindPackageShare('sim_interface'), 'config', [LaunchConfiguration('sim'), '.yaml']])
     params = [config, {'use_sim_time': True}]
     return LaunchDescription([
-        DeclareLaunchArgument('sim', default_value='vrx', choices=['vrx', 'vrx_asv', 'unity']),
+        DeclareLaunchArgument('sim', default_value='vrx', choices=['vrx', 'vrx_asv', 'fast', 'unity']),
         Node(package='sim_interface', executable='thruster_adapter', parameters=params),
         Node(package='sim_interface', executable='sensor_relay', parameters=params),
         Node(package='sim_interface', executable='heading_node', parameters=params),

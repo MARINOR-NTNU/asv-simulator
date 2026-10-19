@@ -10,6 +10,12 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - `sim.launch.py` er testet headless 2026-10-19 med `control:=px4`, `control:=stub autonomy:=fake` (holder heading og fart) og `sim:=vrx` (lidar, kamera, IMU og heading kommer fram).
 - Real-time factor (headless, med `--device /dev/dri`): 0,99 med vår båt og 0,71 med WAM-V.
 
+## Rask 2D-simulator (`asv_fastsim`)
+- Laget 2026-10-19 for tusenvis av tester for autonomy, der 3D og grafikk ikke er viktig. Startes med `sim:=fast`.
+- Sammenlignet med Gazebo (vår båt) med samme testsekvens: fart ved 2 × 10, 30 og 50 N, akselerasjon, oppbremsing, dreiehastighet, svingradius, thrustervinkel og baugthruster er innen 1 %, oppbremsing etter 15 s innen 3 %.
+- Trygg hastighet med hele ROS-kjeden er 20 ganger sanntid. Ved 46 ganger henger nodene etter, og regulatoren blir ustabil.
+- Ikke laget ennå: scenariokjører (situasjoner fra fil eller tilfeldig, resultater til CSV). Venter på hva autonomy vil teste.
+
 ## Vår egen båt (`asv_gazebo`)
 - Testet i VRX 2026-10-12: den flyter på riktig høyde, holder kursen rett frem ved alle hastigheter, er symmetrisk mot babord og styrbord, og følger en bane med `sim:=vrx_asv`.
 - Bekreftet 2026-10-19: lengde ca. 150 cm, bredde ca. 53 cm (L/B ≈ 2,8), vekt ca. 45 kg, lavt tyngdepunkt, baugthruster i tunnel for sideveis manøvrering i lav fart, og to akterthrustere som kan dreies. Modellen stemmer med dette.
@@ -29,3 +35,4 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 3. Publiser bøyeposisjoner fra simulatoren (breddegrad og lengdegrad), når autonomy har sagt hvilket topic og hvilken meldingstype noden deres leser.
 4. Sett inn ekte tall for båten når CAD-modell, motorvalg og analyse finnes.
 5. Legg lidar og kamera på vår egen båt.
+6. Scenariokjører for den raske 2D-simulatoren, når autonomy har sagt hva de vil teste, hva en situasjon er, og hva de vil måle.

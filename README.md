@@ -82,7 +82,7 @@ Pakken må bygges på nytt hver gang containeren startes med `--rm`, og etter en
 ### Starte alt med én kommando
 `sim.launch.py` starter simulatoren og grensesnittet, og velger hva som står for autonomy og control:
 ```bash
-colcon build --merge-install --packages-select asv_gazebo sim_interface
+colcon build --merge-install --packages-select asv_gazebo asv_fastsim sim_interface
 source install/setup.bash
 
 ros2 launch sim_interface sim.launch.py                                   # vår båt, bare grensesnittet (f.eks. for autonomy)
@@ -90,20 +90,30 @@ ros2 launch sim_interface sim.launch.py sim:=vrx                          # WAM-
 ros2 launch sim_interface sim.launch.py control:=stub autonomy:=fake heading:=2.5 speed:=0.5
 ros2 launch sim_interface sim.launch.py control:=stub autonomy:=path path:=path_slalom
 ros2 launch sim_interface sim.launch.py control:=px4                      # control sin PX4, se under
+ros2 launch sim_interface sim.launch.py sim:=fast real_time_factor:=20 control:=stub autonomy:=fake   # rask 2D, se under
 ```
 | Valg | Verdier |
 |---|---|
-| `sim` | `vrx_asv` (vår båt, standard) eller `vrx` (WAM-V) |
+| `sim` | `vrx_asv` (vår båt, standard), `vrx` (WAM-V) eller `fast` (vår båt i den raske 2D-simulatoren) |
+| `real_time_factor` | bare `sim:=fast`: 1 = sanntid (standard), 20 = tjue ganger raskere, 0 = så fort det går |
 | `control` | `none` (standard), `stub` (`stub_controller`) eller `px4` (broene og agenten) |
 | `autonomy` | `none` (standard), `fake` (`fake_heading`, med `heading`, `speed` og `sweep_rate`) eller `path` (`waypoint_follower`, med `path`) |
 | `headless` | `true` = uten Gazebo-vindu |
 
 `control` er ett valg, så `stub_controller` og PX4 kan ikke styre motorene samtidig. Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`, for de starter også `stub_controller`, og da kjemper to om motorene uten noen feilmelding.
 
+### Rask 2D-simulator for mange tester
+`src/asv_fastsim` er en 2D-modell av vår båt (fram, sidelengs og dreiing) uten grafikk. Den leser masse, motstand, thrustere og grenser fra `asv_gazebo/models/asv/model.sdf`, så den bruker de samme tallene som Gazebo. Den publiserer de samme `/autonomy/...`-topicene og leser de samme `/control/...`, så nodene til autonomy og control merker ikke forskjell.
+
+- Målt mot Gazebo 2026-10-19 med samme testsekvens: fart, akselerasjon, oppbremsing, dreiehastighet, svingradius og thrustervinkel er innen 1 % (oppbremsing etter 15 s innen 3 %).
+- Med hele ROS-kjeden (`control:=stub autonomy:=fake`) oppfører den seg likt som i sanntid opp til `real_time_factor:=20`. Ved full fart (ca. 46 ganger sanntid) henger ROS-nodene etter, og regulatoren blir ustabil. Modellen alene, uten ROS, går ca. 700 ganger raskere enn sanntid.
+- Ikke med: bølger, rull, stamp og hiv, kamera og lidar. Til det brukes Gazebo.
+- Noden er klokka (`/clock`) selv, så den kjører ikke med `use_sim_time`.
+
 ### Vår egen båt i VRX
 Pakken `src/asv_gazebo` inneholder en Gazebo-modell av vår egen båt (`models/asv`), bygget rundt skroget `skrog10-1.stl`. Start den i stedet for WAM-V slik:
 ```bash
-colcon build --merge-install --packages-select asv_gazebo sim_interface
+colcon build --merge-install --packages-select asv_gazebo asv_fastsim sim_interface
 source install/setup.bash
 ros2 launch asv_gazebo asv.launch.py                 # headless:=true for å kjøre uten vindu
 ros2 launch sim_interface demo.launch.py sim:=vrx_asv heading:=1.0 speed:=1.0
@@ -158,7 +168,7 @@ PX4 og simulatoren kjører i hver sin container. Micro XRCE-DDS Agent kjører i 
 **2. Start simulatoren.** Start containeren som under «Kjør», og kjør i den:
 ```bash
 cd /root/vrx_ws
-colcon build --merge-install --packages-select asv_gazebo sim_interface
+colcon build --merge-install --packages-select asv_gazebo asv_fastsim sim_interface
 source install/setup.bash
 ros2 launch sim_interface sim.launch.py control:=px4
 ```

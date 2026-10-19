@@ -10,6 +10,7 @@
 - Ufarlige advarsler i loggen: `Unable to deserialize sdf::Model` og `GzCard: Cannot anchor item to self`.
 - Hvis `ros2 topic echo` feiler med `!rclpy.ok()`, har ros2-daemonen hengt seg. Bruk `--no-daemon`.
 - Når Gazebo-vinduet åpnes, kan Ubuntu si at programmet ikke svarer. Trykk «Vent», for «Tving avslutning» avslutter hele simulatoren.
+- Den raske 2D-simulatoren (`sim:=fast`) går fint med hele ROS-kjeden opp til `real_time_factor:=20`. Over det henger nodene etter, og regulatoren blir ustabil uten noen feilmelding. Sjekk at resultatene er like ved en lavere hastighet før du stoler på en ny, høyere.
 - Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`. Da styrer både `stub_controller` og PX4 motorene, uten noen feilmelding.
 
 ## Båtmodellen
