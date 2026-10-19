@@ -60,7 +60,10 @@ ros2 launch vrx_gz competition.launch.py world:=sydney_regatta   # headless:=tru
 - Sjekk at ingen gamle simulatorer kjører før du starter: `docker ps` og `pgrep -af "gz sim"`.
 - Bygg egne pakker i containeren: `colcon build --merge-install --packages-select sim_interface`. Bygget ligger i containeren og forsvinner med `--rm`.
 - Hvis `ros2 topic echo` feiler med `!rclpy.ok()`, har ros2-daemonen hengt seg. Bruk `--no-daemon`.
-- Koblingen mot PX4 startes i tillegg til `sim_interface.launch.py`: `ros2 launch sim_interface px4_bridge.launch.py`. Innstillingene ligger i `config/px4_bridge.yaml`.
+- `ros2 launch sim_interface sim.launch.py` starter simulatoren og grensesnittet med én kommando, for alle grupper. Valg: `sim:=vrx_asv|vrx`, `control:=none|stub|px4`, `autonomy:=none|fake|path` og `headless:=true` (se README «Starte alt med én kommando»). `control` er ett valg, så `stub_controller` og PX4 kan ikke styre motorene samtidig. Testet headless 2026-10-19: `control:=px4` (broene og agenten), `control:=stub autonomy:=fake` (holder heading og fart) og `sim:=vrx` (alle sensorer kommer fram). `demo.launch.py` og `path.launch.py` er beholdt, men starter ikke simulatoren.
+- For control: `sim.launch.py control:=px4`. Oppskriften står i README under «Kjøre control sin PX4 mot simulatoren».
+- Kommende: control sin kjede starter med `CCommand` (ønsket fart og kurs fra autonomy, over MAVLink på båten). Når autonomy og control sin mottaker finnes, trengs en bro fra `/autonomy/desired/{heading,speed}` til `CCommand`, så autonomy-noden kan kjøre uendret mot både `control:=stub` og `control:=px4`.
+- Bare broene, i tillegg til en simulator som allerede kjører: `ros2 launch sim_interface px4_bridge.launch.py`. Innstillingene ligger i `config/px4_bridge.yaml`.
 - Agenten startes med `MicroXRCEAgent udp4 -p 8888` mot PX4 SITL. Mot et kort på USB brukes `MicroXRCEAgent serial --dev /dev/ttyACM0 -b 921600`, og containeren må startes med `--device /dev/ttyACM0` (port og baudrate er ikke sjekket). `ROS_DOMAIN_ID` må være lik `UXRCE_DDS_DOM_ID` i PX4 (begge er 0 som standard).
 - Når control har oppdatert grenene sine: `git -C ~/Flightcontroller-px4 fetch`, deretter `scripts/sync_px4_msgs.sh` og bygg imaget på nytt. Grenene som brukes, står øverst i skriptet.
 

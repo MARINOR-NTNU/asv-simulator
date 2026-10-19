@@ -6,7 +6,7 @@ Felles VRX-simulator for gruppen, kjørt lokalt i Docker: Ubuntu 22.04, ROS 2 Hu
 ```bash
 docker build -t vrx-sim:humble-garden .
 ```
-Bygget tar ca. 15–20 min. `ros_gz_bridge` kan stå i over 10 min uten ny output, og det er normalt.
+Bygget tar ca. 15–20 min, pluss ca. 13 min for Micro XRCE-DDS Agent og `px4_msgs`. `ros_gz_bridge` kan stå i over 10 min uten ny output, og det er normalt.
 
 Har maskinen lite RAM, kan du kjøre bygget i bakgrunnen og følge med i loggen:
 ```bash
@@ -42,6 +42,8 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `fake_heading` | Midlertidig erstatning for autonomy: sender ønsket heading og fart. |
 | `waypoint_follower` | Midlertidig erstatning for autonomy: følger en bane av punkter. |
 | `stub_controller` | Midlertidig erstatning for control: P-regulator fra heading-feil til thrust. |
+| `px4_motor_bridge` | Erstatter `motor_writer` i PX4: `MotorOutput` fra PX4 → `/control/thruster/...`. Se «Kjøre control sin PX4 mot simulatoren». |
+| `px4_seapath_bridge` | Erstatter `seapath`-driveren i PX4: IMU og GPS → `SeapathData` til PX4. |
 
 ### Faste topics
 | Topic | Type | Enhet |
@@ -76,6 +78,27 @@ ros2 launch sim_interface sim_interface.launch.py sim:=vrx
 ros2 launch sim_interface demo.launch.py sim:=vrx heading:=2.0 speed:=1.0
 ```
 Pakken må bygges på nytt hver gang containeren startes med `--rm`, og etter endringer i koden.
+
+### Starte alt med én kommando
+`sim.launch.py` starter simulatoren og grensesnittet, og velger hva som står for autonomy og control:
+```bash
+colcon build --merge-install --packages-select asv_gazebo sim_interface
+source install/setup.bash
+
+ros2 launch sim_interface sim.launch.py                                   # vår båt, bare grensesnittet (f.eks. for autonomy)
+ros2 launch sim_interface sim.launch.py sim:=vrx                          # WAM-V, med lidar og kamera
+ros2 launch sim_interface sim.launch.py control:=stub autonomy:=fake heading:=2.5 speed:=0.5
+ros2 launch sim_interface sim.launch.py control:=stub autonomy:=path path:=path_slalom
+ros2 launch sim_interface sim.launch.py control:=px4                      # control sin PX4, se under
+```
+| Valg | Verdier |
+|---|---|
+| `sim` | `vrx_asv` (vår båt, standard) eller `vrx` (WAM-V) |
+| `control` | `none` (standard), `stub` (`stub_controller`) eller `px4` (broene og agenten) |
+| `autonomy` | `none` (standard), `fake` (`fake_heading`, med `heading`, `speed` og `sweep_rate`) eller `path` (`waypoint_follower`, med `path`) |
+| `headless` | `true` = uten Gazebo-vindu |
+
+`control` er ett valg, så `stub_controller` og PX4 kan ikke styre motorene samtidig. Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`, for de starter også `stub_controller`, og da kjemper to om motorene uten noen feilmelding.
 
 ### Vår egen båt i VRX
 Pakken `src/asv_gazebo` inneholder en Gazebo-modell av vår egen båt (`models/asv`), bygget rundt skroget `skrog10-1.stl`. Start den i stedet for WAM-V slik:
@@ -118,10 +141,55 @@ Banen har et fast nullpunkt (`origin`, breddegrad og lengdegrad for startstedet)
 ### Bytte simulator
 `sim:=` velger hvilken fil i `config/` som lastes: `vrx` (WAM-V), `vrx_asv` (vår båt) eller `unity`. Unity-filen er en mal med plassholdere og er ikke testet. En ny simulator trenger bare en ny yaml-fil, så lenge den publiserer `/clock` og standard ROS-meldinger i ROS-konvensjon (ENU, x frem, z opp).
 
+## Kjøre control sin PX4 mot simulatoren
+Simulatoren later som den er Seapath og motorene, så regulatorene i PX4 kjører uendret:
+```
+VRX-sensorer → px4_seapath_bridge → SeapathData → PX4 (control) → MotorOutput → px4_motor_bridge → VRX-motorer
+```
+PX4 og simulatoren kjører i hver sin container. Micro XRCE-DDS Agent kjører i simulator-containeren, så bare XRCE (UDP port 8888) går mellom dem. PX4-containeren trenger ikke ROS 2.
+
+**1. Bygg imaget** som under «Bygg». Imaget inneholder agenten og `px4_msgs` med control sine meldinger.
+
+**2. Start simulatoren.** Start containeren som under «Kjør», og kjør i den:
+```bash
+cd /root/vrx_ws
+colcon build --merge-install --packages-select asv_gazebo sim_interface
+source install/setup.bash
+ros2 launch sim_interface sim.launch.py control:=px4
+```
+Det starter VRX med vår båt, `sim_interface`, begge broene og agenten. Valg i tillegg til dem under «Starte alt med én kommando»:
+- `forward_thruster:=bow`: sender `forward_propeller_thrust` til baugthrusteren. Uten den ignoreres den, til fortegnet er avklart med control.
+- `agent_port:=8888`: UDP-porten agenten lytter på. Kjører PX4 på kortet, må agenten i stedet startes for hånd med `MicroXRCEAgent serial --dev /dev/ttyACM0 -b 921600`, sammen med `ros2 launch sim_interface px4_bridge.launch.py`, og containeren må startes med `--device /dev/ttyACM0`.
+
+Når Gazebo-vinduet åpnes, kan Ubuntu si at programmet ikke svarer mens verdenen lastes. Trykk «Vent», ikke «Tving avslutning», for det avslutter hele simulatoren.
+
+**3. Start PX4** i sin egen container. Krav på PX4-siden:
+- `src/modules/uxrce_dds_client/dds_topics.yaml` må ha `/fmu/out/motor_output` under `publications` og `/fmu/in/seapath_data` under `subscriptions`.
+- `seapath`-driveren og `motor_writer` må være av, for det er dem simulatoren erstatter.
+- Kjører PX4 på samme PC med `--net=host`, finner den agenten på `127.0.0.1:8888`. På en annen PC må `UXRCE_DDS_AG_IP` settes til IP-en til simulator-PC-en.
+- `ROS_DOMAIN_ID` i simulator-containeren må være lik `UXRCE_DDS_DOM_ID` i PX4 (begge er 0 som standard).
+
+**4. Sjekk at det virker**, i et nytt skall i simulator-containeren:
+```bash
+ros2 topic echo /fmu/out/motor_output    # kommer det noe, sender PX4 til simulatoren
+ros2 topic echo /fmu/in/seapath_data     # det simulatoren sender til PX4 (50 Hz)
+```
+Uten PX4 kan broene testes ved å late som man er PX4:
+```bash
+ros2 topic pub -r 20 /fmu/out/motor_output px4_msgs/msg/MotorOutput "{port_side_thrust: 30.0, starboard_thrust: 30.0}"
+```
+
+**Slik tolkes MotorOutput i dag** (endres i `config/px4_bridge.yaml` når enhetene er avklart med control):
+- `port_side_*` → `left`, `starboard_*` → `right`. Thrust i newton og vinkel i radianer sendes rett gjennom.
+- Positiv vinkel dreier thrusterne mot babord, og båten svinger da mot styrbord. Er fortegnet motsatt hos control, settes `angle_scale: -1.0`.
+- Positiv baugthrust skyver baugen mot babord.
+
+**Kjent om SeapathData fra simulatoren:** posisjon, heading, roll, pitch og vinkelhastigheter er nøyaktige. Farten er regnet ut fra GPS (litt forsinket), heave er en tilnærming, og forsinket heave finnes ikke (merket ugyldig i `status`). `timestamp` er 0, så PX4 setter sin egen tid. Med vår båt går simulatoren nesten i sanntid (0,99), mens WAM-V går på ca. 0,7.
+
 ## Status
 - Docker-imaget `vrx-sim:humble-garden` er bygget og testet. Simulatoren starter både med Gazebo-vindu og headless, og sensorene og motorene virker.
 - `sim_interface` er testet mot VRX, både med WAM-V og med vår egen båt.
 - Modellen av vår egen båt flyter og lar seg styre. Motstanden i vannet er regnet ut fra skrogformen, og thrusterne er anslag til vi vet hvilke motorer som skal brukes.
 - Unity-backenden er ikke testet.
 - Grensesnittet mot control (topics, enheter, fortegn og timeout) er avtalt, se «Faste topics».
-- Control sin kode kjører inne i PX4. Koblingen via uXRCE-DDS, med en oversetter til og fra topicene over, er ikke startet.
+- Control sin kode kjører inne i PX4. Koblingen via uXRCE-DDS er klar på vår side og testet med `ros2 topic pub` (2026-10-19), men ikke mot ekte PX4 ennå. Den venter på at control legger `motor_output` og `seapath_data` inn i `dds_topics.yaml`, og på hva tallene i MotorOutput betyr.
