@@ -1,0 +1,18 @@
+# Koblingen mot control sin PX4 via uXRCE-DDS. Uavhengig av hvilken simulator som kjører.
+px4_motor_bridge:
+  ros__parameters:
+    motor_output_topic: /fmu/out/motor_output
+    # Ikke avklart med control: enhet (N, -1..1 eller RC-mikrosekunder), grader eller radianer,
+    # og fortegn. Sendt videre = (verdi - offset) * scale. Disse verdiene sender alt rett videre.
+    thrust_offset: 0.0
+    thrust_scale: 1.0
+    angle_offset: 0.0
+    angle_scale: 1.0
+    forward_thruster: ''   # tom = forward_propeller_thrust ignoreres (WAM-V har ingen)
+
+px4_seapath_bridge:
+  ros__parameters:
+    seapath_topic: /fmu/in/seapath_data
+    rate: 50.0   # Hz. Hvor ofte den ekte Seapath-en sender, er ikke avklart.
+    tau: 0.5     # sekunder, glatting av farten fra GPS
+    heave_tau: 20.0   # sekunder, middelhøyden heave regnes fra
