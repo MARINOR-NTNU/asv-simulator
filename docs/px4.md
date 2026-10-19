@@ -34,7 +34,7 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
   - Avtalt med control 2026-10-19: thrust er -100..100, som betyr 0–100 % kraft forover og bakover.
   - `forward_propeller_thrust` er baugthrusteren. Positiv verdi skyver baugen mot styrbord (NED/FRD), altså motsatt av kontrakten på `/control/thruster/bow/thrust`. Broen snur fortegnet, og kontrakten er uendret.
   - Vinklene er i radianer, positiv mot babord sett bakfra, 0 rett bakover og ±90° (±π/2) som ytterpunkter, likt for begge (2026-10-19). Det er det samme som kontrakten.
-  - Bakover gir akterthrusterne bare ca. 60 % av kraften forover (2026-10-19). Det ligger både i modellen (`min_thrust_cmd` -30 N) og i broen (`stern_reverse_ratio`). For baugthrusteren er det ikke avklart.
+  - Bakover gir akterthrusterne bare ca. 60 % av kraften forover (2026-10-19). Det ligger både i modellen (`min_thrust_cmd` -30 N) og i broen (`stern_reverse_ratio`). Baugthrusteren skal være like sterk begge veier (2026-10-19).
   - I dag sender RC-veien rå RC-verdier (ca. 1000–2000 µs) og regulatorveien faste plassholdere (±1). Begge vinklene kommer fra samme RC-spak.
 - `SeapathData`: posisjon (grader), fart i NED, roll, pitch og heading (radianer, heading 0 til 2π), vinkelhastigheter, heave og status. Fortegn som Seapath, som er NED/FRD. Ingen kode leser den ennå.
   - Control sier (2026-10-19) at regulatorene skal bruke posisjon, heading og kurs, og at vi gjerne fyller ut hele meldingen (det gjør vi). Meldingen har ikke noe kursfelt, men kurs over grunn er `atan2(vel_e, vel_n)`.
@@ -87,12 +87,11 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten for
 - Hvordan de starter PX4: `make px4_sitl_sih sihsim_quadx` (eller `px4_sitl_default`) i en container.
 - Vinklene: radianer, positiv mot babord sett bakfra, ±90°.
 - Bakover: -100 % er ca. 60 % av kraften forover.
+- Baugthrusteren: positiv mot styrbord (bekreftet), og like sterk begge veier.
 
 ## Venter på svar fra control
 - At de legger `/fmu/out/motor_output` (publications) og `/fmu/in/seapath_data` (subscriptions) inn i `dds_topics.yaml`. Uten det kommer ingenting fram.
 - At de slår på og starter `switch_motor_output` i SITL-bygget de bruker, og hvilken gren hele kjeden skal samles på for SITL.
 - At containeren deres kjører med `--net=host` (eller setter `UXRCE_DDS_AG_IP`).
 - Om regulatorene leser `seapath_data` eller `vehicle_*`-topicene. Med `sihsim_quadx` kommer `vehicle_*` fra et simulert quadkopter.
-- Om det er greit at broen snur fortegnet på baugthrusteren.
-- Om baugthrusteren også gir mindre kraft den ene veien.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.

@@ -10,7 +10,7 @@ px4_motor_bridge:
     stern_thrust_scale: 0.5
     forward_thrust_scale: -0.25
     # Bakover (negativ verdi fra control) gir akterthrusterne 60 % av kraften forover (control, 2026-10-19),
-    # så -100 % blir -30 N. Baugthrusteren er ikke avklart og regnes som lik begge veier.
+    # så -100 % blir -30 N. Baugthrusteren er like sterk begge veier.
     stern_reverse_ratio: 0.6
     forward_reverse_ratio: 1.0
     # Vinklene er i radianer, positiv mot babord sett bakfra, ±90° (control, 2026-10-19).
