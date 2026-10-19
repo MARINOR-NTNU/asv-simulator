@@ -6,7 +6,7 @@ Felles VRX-simulator for gruppen, kjørt lokalt i Docker: Ubuntu 22.04, ROS 2 Hu
 ```bash
 docker build -t vrx-sim:humble-garden .
 ```
-Bygget tar ca. 15–20 min, pluss ca. 13 min for Micro XRCE-DDS Agent og `px4_msgs`. `ros_gz_bridge` kan stå i over 10 min uten ny output, og det er normalt.
+Bygget tar ca. 15–20 min, pluss ca. 2 min for Micro XRCE-DDS Agent og `px4_msgs`. `ros_gz_bridge` kan stå i over 10 min uten ny output, og det er normalt.
 
 Har maskinen lite RAM, kan du kjøre bygget i bakgrunnen og følge med i loggen:
 ```bash
@@ -153,7 +153,7 @@ VRX-sensorer → px4_seapath_bridge → SeapathData → PX4 (control) → MotorO
 ```
 PX4 og simulatoren kjører i hver sin container. Micro XRCE-DDS Agent kjører i simulator-containeren, så bare XRCE (UDP port 8888) går mellom dem. PX4-containeren trenger ikke ROS 2.
 
-**1. Bygg imaget** som under «Bygg». Imaget inneholder agenten og `px4_msgs` med control sine meldinger.
+**1. Bygg imaget** som under «Bygg». Imaget inneholder agenten og `px4_msgs` med de to meldingene fra control som simulatoren bruker (`MotorOutput` og `SeapathData`).
 
 **2. Start simulatoren.** Start containeren som under «Kjør», og kjør i den:
 ```bash
