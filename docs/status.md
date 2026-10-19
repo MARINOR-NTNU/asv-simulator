@@ -19,14 +19,16 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 ## Vår egen båt (`asv_gazebo`)
 - Testet i VRX 2026-10-12: den flyter på riktig høyde, holder kursen rett frem ved alle hastigheter, er symmetrisk mot babord og styrbord, og følger en bane med `sim:=vrx_asv`.
 - Bekreftet 2026-10-19: lengde ca. 150 cm, bredde ca. 53 cm (L/B ≈ 2,8), vekt ca. 45 kg, lavt tyngdepunkt, baugthruster i tunnel for sideveis manøvrering i lav fart, og to akterthrustere som kan dreies. Modellen stemmer med dette.
-- Anslag som må erstattes med ekte tall: tyngdepunkt, treghetsmoment (regnet som en massiv boks), maks thrust (50 N akter, 25 N baug), hvor langt og fort akterthrusterne dreier (±90°, 2 rad/s), og motstanden i vannet (regnet ut fra skrogformen, ikke målt).
+- Bekreftet av control 2026-10-19: akterthrusterne dreier ±90°, og bakover gir de ca. 60 % av kraften forover (i modellen: -30 N).
+- Anslag som må erstattes med ekte tall: tyngdepunkt, treghetsmoment (regnet som en massiv boks), maks thrust (50 N akter, 25 N baug), hvor fort akterthrusterne dreier (2 rad/s), og motstanden i vannet (regnet ut fra skrogformen, ikke målt).
 - Medsvingende vannmasse (`xDotU`, `yDotV`, `nDotR`) er satt til 0, så båten reagerer raskere sidelengs og i dreiing enn den virkelige vil gjøre. Det betyr mest for DP.
 - Det finnes ingen CAD-modell ennå. Stabilitets- og hydrodynamikkanalyse er planlagt, og tallene derfra skal inn i modellen.
 
 ## Grensesnittet mot control og autonomy
 - Avtalt med control 2026-10-12: én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
 - Control sin kode kjører i PX4, så den kobles til via uXRCE-DDS. Det er klart på vår side, men ikke testet mot ekte PX4. Se [px4.md](px4.md).
-- Svar fra control 2026-10-19: MotorOutput-thrust er -100..100 %, og positiv baugthrust skyver baugen mot styrbord. Broen regner om til newton og snur fortegnet på baugen, så kontrakten er uendret. Det de ikke har svart på ennå, står i [px4.md](px4.md).
+- Svar fra control 2026-10-19: MotorOutput-thrust er -100..100 %, og positiv baugthrust skyver baugen mot styrbord. Broen regner om til newton og snur fortegnet på baugen, så kontrakten er uendret. Vinklene (radianer, positiv mot babord, ±90°) er de samme som i kontrakten.
+- Control kjører PX4 som `px4_sitl_sih sihsim_quadx` i en container. Før det virker mot simulatoren, må `switch_motor_output` slås på i SITL, topicene legges i `dds_topics.yaml`, og containeren deres kjøre med `--net=host` (se [px4.md](px4.md)). Det de ikke har svart på ennå, står i [px4.md](px4.md).
 - Autonomy skriver en ROS 2-node i C++ (radianer, bøyer i breddegrad og lengdegrad) som gir ønsket heading og fart. Den skal erstatte `fake_heading` og `waypoint_follower`. Simulatoren publiserer ikke bøyeposisjoner ennå.
 - Regulering er control sin oppgave, ikke simulatoren sin. `stub_controller` (med fartsregulering fra `speed_node`) og `waypoint_follower` er bare testverktøy til control og autonomy er koblet på, så de skal ikke videreutvikles mer enn testene trenger.
 

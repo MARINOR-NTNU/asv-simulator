@@ -278,7 +278,8 @@
       <nRR>11.0</nRR>
     </plugin>
 
-    <!-- Motorer. ANSLAG: 50 N per thruster og 25 N for baugthrusteren. -->
+    <!-- Motorer. ANSLAG: 50 N per thruster og 25 N for baugthrusteren.
+         Bakover gir akterthrusterne 60 % av kraften forover (control, 2026-10-19). -->
     <plugin filename="gz-sim-thruster-system" name="gz::sim::systems::Thruster">
       <joint_name>left_prop_joint</joint_name>
       <namespace>asv</namespace>
@@ -288,7 +289,7 @@
       <propeller_diameter>0.09</propeller_diameter>
       <velocity_control>true</velocity_control>
       <max_thrust_cmd>50</max_thrust_cmd>
-      <min_thrust_cmd>-50</min_thrust_cmd>
+      <min_thrust_cmd>-30</min_thrust_cmd>
     </plugin>
     <plugin filename="gz-sim-thruster-system" name="gz::sim::systems::Thruster">
       <joint_name>right_prop_joint</joint_name>
@@ -299,7 +300,7 @@
       <propeller_diameter>0.09</propeller_diameter>
       <velocity_control>true</velocity_control>
       <max_thrust_cmd>50</max_thrust_cmd>
-      <min_thrust_cmd>-50</min_thrust_cmd>
+      <min_thrust_cmd>-30</min_thrust_cmd>
     </plugin>
     <plugin filename="gz-sim-thruster-system" name="gz::sim::systems::Thruster">
       <joint_name>bow_prop_joint</joint_name>

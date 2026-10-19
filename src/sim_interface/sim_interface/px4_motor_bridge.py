@@ -23,6 +23,9 @@ class Px4MotorBridge(Node):
         self.thrust_offset = self.declare_parameter('thrust_offset', 0.0).value
         self.stern_thrust_scale = self.declare_parameter('stern_thrust_scale', 1.0).value
         self.forward_thrust_scale = self.declare_parameter('forward_thrust_scale', 1.0).value
+        # Negative verdier ganges i tillegg med dette, fordi propellene gir mindre kraft bakover.
+        self.stern_reverse_ratio = self.declare_parameter('stern_reverse_ratio', 1.0).value
+        self.forward_reverse_ratio = self.declare_parameter('forward_reverse_ratio', 1.0).value
         self.angle_offset = self.declare_parameter('angle_offset', 0.0).value
         self.angle_scale = self.declare_parameter('angle_scale', 1.0).value
         # Motoren forward_propeller_thrust sendes til, f.eks. bow. Tom = ignoreres (WAM-V har ingen).
@@ -60,10 +63,16 @@ class Px4MotorBridge(Node):
             if field.endswith('angle'):
                 value = (value - self.angle_offset) * self.angle_scale
             elif field == 'forward_propeller_thrust':
-                value = (value - self.thrust_offset) * self.forward_thrust_scale
+                value = self.to_newton(value, self.forward_thrust_scale, self.forward_reverse_ratio)
             else:
-                value = (value - self.thrust_offset) * self.stern_thrust_scale
+                value = self.to_newton(value, self.stern_thrust_scale, self.stern_reverse_ratio)
             publisher.publish(Float64(data=value))
+
+    def to_newton(self, value, scale, reverse_ratio):
+        value -= self.thrust_offset
+        if value < 0.0:
+            value *= reverse_ratio
+        return value * scale
 
 
 def main():

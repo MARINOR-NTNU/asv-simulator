@@ -6,8 +6,8 @@ thruster_adapter:
     steerable: [left, right]
     thrust_topic: /fast/thrusters/{side}/thrust
     angle_topic: /fast/thrusters/{side}/pos
-    max_thrust: 50.0     # newton per thruster. Baugthrusteren begrenses til 25 N i modellen.
-    max_angle: 1.5708    # radianer
+    max_thrust: 50.0     # newton per thruster. I modellen: baug ±25 N, akter bakover -30 N.
+    max_angle: 1.5708    # radianer, ±90° (control, 2026-10-19)
     thrust_scale: 1.0
     angle_scale: 1.0
     timeout: 0.5
