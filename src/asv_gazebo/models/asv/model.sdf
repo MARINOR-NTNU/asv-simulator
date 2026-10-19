@@ -8,7 +8,8 @@
   Origo er midt i lengden, x peker forover, y mot babord og z opp.
 
   ANSLAG som må erstattes med ekte tall: masse, tyngdepunkt, treghetsmoment, maks thrust,
-  motstandskoeffisienter, og at thrusterne kan dreies.
+  motstandskoeffisienter, og hvor langt og hvor fort thrusterne dreies. At akterthrusterne
+  kan dreies, er bekreftet (2026-10-19).
 -->
 <sdf version="1.9">
   <model name="asv">
@@ -312,7 +313,7 @@
       <min_thrust_cmd>-25</min_thrust_cmd>
     </plugin>
 
-    <!-- Dreiing av thrusterne (radianer). ANSLAG: at thrusterne kan dreies, og at de dreier 2 rad/s (cmd_max). -->
+    <!-- Dreiing av thrusterne (radianer). At de kan dreies, er bekreftet. ANSLAG: at de dreier 2 rad/s (cmd_max). -->
     <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
       <joint_name>left_pod_joint</joint_name>
       <use_velocity_commands>true</use_velocity_commands>
