@@ -26,6 +26,7 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 ## Grensesnittet mot control og autonomy
 - Avtalt med control 2026-10-12: én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
 - Control sin kode kjører i PX4, så den kobles til via uXRCE-DDS. Det er klart på vår side, men ikke testet mot ekte PX4. Se [px4.md](px4.md).
+- Svar fra control 2026-10-19: MotorOutput-thrust er -100..100 %, og positiv baugthrust skyver baugen mot styrbord. Broen regner om til newton og snur fortegnet på baugen, så kontrakten er uendret. Det de ikke har svart på ennå, står i [px4.md](px4.md).
 - Autonomy skriver en ROS 2-node i C++ (radianer, bøyer i breddegrad og lengdegrad) som gir ønsket heading og fart. Den skal erstatte `fake_heading` og `waypoint_follower`. Simulatoren publiserer ikke bøyeposisjoner ennå.
 - Regulering er control sin oppgave, ikke simulatoren sin. `stub_controller` (med fartsregulering fra `speed_node`) og `waypoint_follower` er bare testverktøy til control og autonomy er koblet på, så de skal ikke videreutvikles mer enn testene trenger.
 

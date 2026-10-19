@@ -2,6 +2,7 @@
 # Kopierer PX4-meldingene simulatoren bruker fra control sin fork inn i px4_msgs/.
 # Leser bare fra git-historikken i forken (git show), så arbeidskopien og grenene der endres ikke.
 # Kjør `git -C ~/Flightcontroller-px4 fetch` først hvis du vil ha nyeste versjon av grenene.
+# PX4_BRANCH=<gren> henter alle meldingene fra den grenen i stedet, f.eks. PX4_BRANCH=main.
 set -euo pipefail
 
 PX4_DIR="${PX4_DIR:-$HOME/Flightcontroller-px4}"
@@ -13,6 +14,15 @@ MSGS=(
 
 OUT="$(cd "$(dirname "$0")/.." && pwd)/px4_msgs"
 px4() { git -C "$PX4_DIR" "$@"; }
+
+if [[ -n "${PX4_BRANCH:-}" ]]; then
+  MSGS=("${MSGS[@]/#*:/origin/$PX4_BRANCH:}")
+fi
+
+# Sjekker at alle meldingene finnes før noe slettes.
+for e in "${MSGS[@]}"; do
+  px4 cat-file -e "$e" 2>/dev/null || { echo "Finner ikke $e i $PX4_DIR" >&2; exit 1; }
+done
 
 # Fjerner bare de genererte mappene, så meldinger som er tatt ut av lista også forsvinner her.
 rm -rf "$OUT/msg" "$OUT/srv"

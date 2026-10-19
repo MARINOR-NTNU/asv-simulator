@@ -2,10 +2,14 @@
 px4_motor_bridge:
   ros__parameters:
     motor_output_topic: /fmu/out/motor_output
-    # Ikke avklart med control: enhet (N, -1..1 eller RC-mikrosekunder), grader eller radianer,
-    # og fortegn. Sendt videre = (verdi - offset) * scale. Disse verdiene sender alt rett videre.
+    # Sendt videre = (verdi - offset) * scale. Control sender thrust som -100..100 % (2026-10-19),
+    # så scale = maks thrust / 100. Maks thrust er anslag for vår båt (50 N akter, 25 N baug).
+    # Positiv baugthrust hos control skyver baugen mot styrbord, i kontrakten mot babord: derfor minus.
+    # Med WAM-V (2353 N) må stern_thrust_scale settes til ca. 23,5.
     thrust_offset: 0.0
-    thrust_scale: 1.0
+    stern_thrust_scale: 0.5
+    forward_thrust_scale: -0.25
+    # Vinklene er ikke avklart (enhet, fortegn, hvor langt de dreier). Dette sender dem rett videre.
     angle_offset: 0.0
     angle_scale: 1.0
     forward_thruster: ''   # tom = forward_propeller_thrust ignoreres (WAM-V har ingen)

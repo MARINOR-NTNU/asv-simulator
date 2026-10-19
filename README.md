@@ -195,13 +195,15 @@ ros2 topic echo /fmu/in/seapath_data     # det simulatoren sender til PX4 (50 Hz
 ```
 Uten PX4 kan broene testes ved å late som man er PX4:
 ```bash
-ros2 topic pub -r 20 /fmu/out/motor_output px4_msgs/msg/MotorOutput "{port_side_thrust: 30.0, starboard_thrust: 30.0}"
+ros2 topic pub -r 20 /fmu/out/motor_output px4_msgs/msg/MotorOutput "{port_side_thrust: 60.0, starboard_thrust: 60.0}"   # 60 % = 30 N
 ```
 
-**Slik tolkes MotorOutput i dag** (endres i `config/px4_bridge.yaml` når enhetene er avklart med control):
-- `port_side_*` → `left`, `starboard_*` → `right`. Thrust i newton og vinkel i radianer sendes rett gjennom.
+**Slik tolkes MotorOutput i dag** (innstillingene ligger i `config/px4_bridge.yaml`):
+- `port_side_*` → `left`, `starboard_*` → `right`, `forward_propeller_thrust` → `bow` (med `forward_thruster:=bow`).
+- Thrust er -100..100 % (avtalt med control). Broen gjør det om til newton med maks thrust 50 N akter og 25 N baug (anslag). Med WAM-V settes `stern_thrust_scale: 23.5`.
+- Vinklene er ikke avklart og sendes rett gjennom som radianer.
 - Positiv vinkel dreier thrusterne mot babord, og båten svinger da mot styrbord. Er fortegnet motsatt hos control, settes `angle_scale: -1.0`.
-- Positiv baugthrust skyver baugen mot babord.
+- Positiv baugthrust skyver baugen mot babord på `/control/thruster/bow/thrust`. Hos control skyver positiv `forward_propeller_thrust` den mot styrbord, så broen snur fortegnet.
 
 **Kjent om SeapathData fra simulatoren:** posisjon, heading, roll, pitch og vinkelhastigheter er nøyaktige. Farten er regnet ut fra GPS (litt forsinket), heave er en tilnærming, og forsinket heave finnes ikke (merket ugyldig i `status`). `timestamp` er 0, så PX4 setter sin egen tid. Med vår båt går simulatoren nesten i sanntid (0,99), mens WAM-V går på ca. 0,7.
 

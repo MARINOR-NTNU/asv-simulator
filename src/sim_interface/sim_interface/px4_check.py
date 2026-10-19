@@ -168,8 +168,8 @@ def main():
             r.info('Verdiene ser ut som plassholdere (0 og ±1). Regulatorveien til control er kanskje '
                    'ikke koblet på, eller RC-modus er ikke valgt.')
         elif any(900.0 <= abs(v) <= 2100.0 for v in values):
-            r.info('Verdiene ser ut som rå RC-verdier (ca. 1000–2000 µs), ikke newton og radianer. '
-                   'Juster thrust_offset/thrust_scale i config/px4_bridge.yaml.')
+            r.info('Verdiene ser ut som rå RC-verdier (ca. 1000–2000 µs), ikke -100..100 %. '
+                   'Juster thrust_offset og *_thrust_scale i config/px4_bridge.yaml.')
     elif pubs:
         r.fail(f'{MOTOR} finnes, men det kommer ingen data', [
             'MotorOutput.msg er ikke lik hos control og i px4_msgs. Kjør scripts/sync_px4_msgs.sh '

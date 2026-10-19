@@ -18,10 +18,11 @@ class Px4MotorBridge(Node):
     def __init__(self):
         super().__init__('px4_motor_bridge')
         topic = self.declare_parameter('motor_output_topic', '/fmu/out/motor_output').value
-        # Enhetene i MotorOutput er ikke avklart med control. Det som sendes videre er
-        # (verdi - offset) * scale, så standardverdiene sender alt rett videre som newton og radianer.
+        # Det som sendes videre er (verdi - offset) * scale. Control sender thrust som -100..100 %,
+        # så scale er maks thrust / 100, med eget tall for akter og baug. Vinklene er ikke avklart.
         self.thrust_offset = self.declare_parameter('thrust_offset', 0.0).value
-        self.thrust_scale = self.declare_parameter('thrust_scale', 1.0).value
+        self.stern_thrust_scale = self.declare_parameter('stern_thrust_scale', 1.0).value
+        self.forward_thrust_scale = self.declare_parameter('forward_thrust_scale', 1.0).value
         self.angle_offset = self.declare_parameter('angle_offset', 0.0).value
         self.angle_scale = self.declare_parameter('angle_scale', 1.0).value
         # Motoren forward_propeller_thrust sendes til, f.eks. bow. Tom = ignoreres (WAM-V har ingen).
@@ -58,8 +59,10 @@ class Px4MotorBridge(Node):
                 continue
             if field.endswith('angle'):
                 value = (value - self.angle_offset) * self.angle_scale
+            elif field == 'forward_propeller_thrust':
+                value = (value - self.thrust_offset) * self.forward_thrust_scale
             else:
-                value = (value - self.thrust_offset) * self.thrust_scale
+                value = (value - self.thrust_offset) * self.stern_thrust_scale
             publisher.publish(Float64(data=value))
 
 
