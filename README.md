@@ -141,6 +141,11 @@ Banen har et fast nullpunkt (`origin`, breddegrad og lengdegrad for startstedet)
 ### Bytte simulator
 `sim:=` velger hvilken fil i `config/` som lastes: `vrx` (WAM-V), `vrx_asv` (vår båt) eller `unity`. Unity-filen er en mal med plassholdere og er ikke testet. En ny simulator trenger bare en ny yaml-fil, så lenge den publiserer `/clock` og standard ROS-meldinger i ROS-konvensjon (ENU, x frem, z opp).
 
+Sim-topics i VRX (bekreftet i containeren). Nodene bruker dem bare gjennom `config/<sim>.yaml`:
+- WAM-V: `/wamv/pose` (ingen ferdig odometri), `/wamv/sensors/gps/gps/fix`, `/wamv/sensors/imu/imu/data`, `/wamv/sensors/lidars/lidar_wamv_sensor/{points,scan}`, `/wamv/sensors/cameras/{front_left,front_right,middle_right}_camera_sensor/image_raw` og motorene `/wamv/thrusters/{left,right}/{thrust,pos}`.
+- Vår båt: `/asv/sensors/imu`, `/asv/sensors/gps`, motorene `/asv/thrusters/{left,right,bow}/thrust` og `/asv/thrusters/{left,right}/pos`, og leddvinklene på `/asv/joint_states`.
+- Begge: `/clock`.
+
 ## Kjøre control sin PX4 mot simulatoren
 Simulatoren later som den er Seapath og motorene, så regulatorene i PX4 kjører uendret:
 ```
@@ -186,10 +191,7 @@ ros2 topic pub -r 20 /fmu/out/motor_output px4_msgs/msg/MotorOutput "{port_side_
 
 **Kjent om SeapathData fra simulatoren:** posisjon, heading, roll, pitch og vinkelhastigheter er nøyaktige. Farten er regnet ut fra GPS (litt forsinket), heave er en tilnærming, og forsinket heave finnes ikke (merket ugyldig i `status`). `timestamp` er 0, så PX4 setter sin egen tid. Med vår båt går simulatoren nesten i sanntid (0,99), mens WAM-V går på ca. 0,7.
 
-## Status
-- Docker-imaget `vrx-sim:humble-garden` er bygget og testet. Simulatoren starter både med Gazebo-vindu og headless, og sensorene og motorene virker.
-- `sim_interface` er testet mot VRX, både med WAM-V og med vår egen båt.
-- Modellen av vår egen båt flyter og lar seg styre. Motstanden i vannet er regnet ut fra skrogformen, og thrusterne er anslag til vi vet hvilke motorer som skal brukes.
-- Unity-backenden er ikke testet.
-- Grensesnittet mot control (topics, enheter, fortegn og timeout) er avtalt, se «Faste topics».
-- Control sin kode kjører inne i PX4. Koblingen via uXRCE-DDS er klar på vår side og testet med `ros2 topic pub` (2026-10-19), men ikke mot ekte PX4 ennå. Den venter på at control legger `motor_output` og `seapath_data` inn i `dds_topics.yaml`, og på hva tallene i MotorOutput betyr.
+## Dokumentasjon
+- [docs/status.md](docs/status.md): status, hva som er testet, og neste steg.
+- [docs/px4.md](docs/px4.md): PX4-koblingen, hva vi vet om koden til control, og hva vi venter på fra dem.
+- [docs/fallgruver.md](docs/fallgruver.md): ting som er lette å gå i.
