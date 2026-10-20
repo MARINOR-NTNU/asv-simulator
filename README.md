@@ -161,32 +161,51 @@ Simulatoren later som den er Seapath og motorene, så regulatorene i PX4 kjører
 ```
 VRX-sensorer → px4_seapath_bridge → SeapathData → PX4 (control) → MotorOutput → px4_motor_bridge → VRX-motorer
 ```
-PX4 og simulatoren kjører i hver sin container. Micro XRCE-DDS Agent kjører i simulator-containeren, så bare XRCE (UDP port 8888) går mellom dem. PX4-containeren trenger ikke ROS 2.
+PX4 og simulatoren kjører i hver sin container, begge startet fra dette repoet. Koden til control ligger som git-submodule i `px4/Flightcontroller-px4` og bygges i PX4-containeren. Vi endrer den ikke. Micro XRCE-DDS Agent kjører i simulator-containeren, så bare XRCE (UDP port 8888) går mellom dem. PX4-containeren trenger ikke ROS 2.
 
-**1. Bygg imaget** som under «Bygg». Imaget inneholder agenten og `px4_msgs` med de to meldingene fra control som simulatoren bruker (`MotorOutput` og `SeapathData`).
-
-**2. Start simulatoren.** Start containeren som under «Kjør», og kjør i den:
+**1. Hent koden til control** (én gang, og når submodulen er oppdatert):
 ```bash
-cd /root/vrx_ws
-colcon build --merge-install --packages-select asv_gazebo asv_fastsim sim_interface
-source install/setup.bash
-ros2 launch sim_interface sim.launch.py control:=px4
+git submodule update --init px4/Flightcontroller-px4
 ```
-Det starter VRX med vår båt, `sim_interface`, begge broene og agenten. Valg i tillegg til dem under «Starte alt med én kommando»:
-- `forward_thruster:=bow`: sender `forward_propeller_thrust` til baugthrusteren. Uten den ignoreres den, til fortegnet er avklart med control.
-- `agent_port:=8888`: UDP-porten agenten lytter på. Kjører PX4 på kortet, må agenten i stedet startes for hånd med `MicroXRCEAgent serial --dev /dev/ttyACM0 -b 921600`, sammen med `ros2 launch sim_interface px4_bridge.launch.py`, og containeren må startes med `--device /dev/ttyACM0`.
+Ikke bruk `--recursive`. PX4 henter selv de av sine egne submoduler bygget trenger. Submodulen peker på én commit på grenen `feature/control/proteus_board`. Nyeste commit på grenen hentes med `git submodule update --remote px4/Flightcontroller-px4`.
+
+**2. Bygg imagene** (VRX-imaget som under «Bygg», PX4-imaget tar noen minutter):
+```bash
+docker build -t vrx-sim:humble-garden .
+docker build -f Dockerfile.px4 -t px4-sitl:proteus .
+```
+PX4-imaget har bare verktøykjeden (samme pakker som PX4 sitt `Tools/setup/ubuntu.sh --no-nuttx --no-sim-tools`). Python-pakkene leses fra `requirements.txt` i submodulen.
+
+**3. Start begge**, fra roten av repoet:
+```bash
+xhost +local:docker                          # bare for Gazebo-vindu
+docker compose up                            # vår båt i Gazebo, broene, agenten og PX4
+SIM=fast HEADLESS=true docker compose up     # 2D-simulatoren i stedet, uten vindu
+```
+`vrx` bygger pakkene våre og kjører `sim.launch.py control:=px4`. `px4` bygger PX4 (første gang 30–60 min med ett løp om gangen, siden bare det som er endret) og starter den. Filene i `px4/Flightcontroller-px4/build/` eies av brukeren din, ikke root.
+
+| Variabel | Standard | Betyr |
+|---|---|---|
+| `SIM` | `vrx_asv` | `vrx_asv`, `vrx` eller `fast`, som i `sim.launch.py` |
+| `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
+| `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
+| `PX4_TARGET` | `px4_sitl_default` | byggemålet i PX4 |
+| `PX4_AIRFRAME` | `10040` | `sihsim_quadx`. `10016` (`none_iris`) henger ved oppstart, se [docs/px4.md](docs/px4.md) |
+
+PX4-konsollen (`pxh>`) nås med `docker attach repo-klon-px4-1`. Ctrl-P Ctrl-Q går ut uten å stoppe PX4. Stopp alt med `docker compose down`.
 
 Når Gazebo-vinduet åpnes, kan Ubuntu si at programmet ikke svarer mens verdenen lastes. Trykk «Vent», ikke «Tving avslutning», for det avslutter hele simulatoren.
 
-**3. Start PX4** i sin egen container. Krav på PX4-siden:
-- `src/modules/uxrce_dds_client/dds_topics.yaml` må ha `/fmu/out/motor_output` under `publications` og `/fmu/in/seapath_data` under `subscriptions`.
-- `seapath`-driveren og `motor_writer` må være av, for det er dem simulatoren erstatter.
-- Kjører PX4 på samme PC med `--net=host`, finner den agenten på `127.0.0.1:8888`. På en annen PC må `UXRCE_DDS_AG_IP` settes til IP-en til simulator-PC-en.
+Krav på PX4-siden (hos control) før data går begge veier:
+- `src/modules/uxrce_dds_client/dds_topics.yaml` må ha `/fmu/out/motor_output` under `publications` og `/fmu/in/seapath_data` under `subscriptions`, og meldingene må finnes i `msg/`.
+- `switch_motor_output` må være med og startes i SITL-bygget, så noe publiserer `MotorOutput`.
 - `ROS_DOMAIN_ID` i simulator-containeren må være lik `UXRCE_DDS_DOM_ID` i PX4 (begge er 0 som standard).
 
-**4. Sjekk at det virker**, i et nytt skall i simulator-containeren:
+PX4 på kortet i stedet for SITL: start agenten for hånd med `MicroXRCEAgent serial --dev /dev/ttyACM0 -b 921600` sammen med `ros2 launch sim_interface px4_bridge.launch.py`, og start simulator-containeren med `--device /dev/ttyACM0` (port og baudrate er ikke sjekket).
+
+**4. Sjekk at det virker**, i et nytt skall på verten:
 ```bash
-ros2 run sim_interface px4_check
+docker compose exec vrx bash -c 'source /root/vrx_ws/install/setup.bash && ros2 run sim_interface px4_check'
 ```
 Den sjekker hvert ledd i rekkefølge (simulatoren, broene, agenten, om PX4 er koblet til, om MotorOutput og SeapathData går, og om tallene ser ekte ut), og sier hva som mest sannsynlig er galt ved første feil. For å se dataene selv:
 ```bash

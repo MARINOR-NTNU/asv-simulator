@@ -28,12 +28,12 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Avtalt med control 2026-10-12: én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
 - Control sin kode kjører i PX4, så den kobles til via uXRCE-DDS. Det er klart på vår side, men ikke testet mot ekte PX4. Se [px4.md](px4.md).
 - Svar fra control 2026-10-19: MotorOutput-thrust er -100..100 %, og positiv baugthrust skyver baugen mot styrbord. Broen regner om til newton og snur fortegnet på baugen, så kontrakten er uendret. Vinklene (radianer, positiv mot babord, ±90°) er de samme som i kontrakten.
-- Control vil kjøre PX4 som `px4_sitl_proteus none_iris` i en container (2026-10-20), men det bygget er ikke pushet ennå. Før det virker mot simulatoren, må `switch_motor_output` slås på i SITL, topicene legges i `dds_topics.yaml`, og containeren deres kjøre med `--net=host` (se [px4.md](px4.md)). Det de ikke har svart på ennå, står i [px4.md](px4.md).
+- Fra 2026-10-20 kjøres control sin PX4 som SITL fra vårt repo: submodule i `px4/Flightcontroller-px4`, eget image (`Dockerfile.px4`) og `docker compose up` for begge. Testet: PX4 kobler seg til agenten og 69 `/fmu`-topics kommer fram. MotorOutput og SeapathData går ikke ennå, fordi grenen til control ikke kompilerer (`MotorOutput.msg` mangler). Se [px4.md](px4.md). Før det virker mot simulatoren, må `switch_motor_output` slås på i SITL, topicene legges i `dds_topics.yaml`, og containeren deres kjøre med `--net=host` (se [px4.md](px4.md)). Det de ikke har svart på ennå, står i [px4.md](px4.md).
 - Autonomy skriver en ROS 2-node i C++ (radianer, bøyer i breddegrad og lengdegrad) som gir ønsket heading og fart. Den skal erstatte `fake_heading` og `waypoint_follower`. Simulatoren publiserer ikke bøyeposisjoner ennå.
 - Regulering er control sin oppgave, ikke simulatoren sin. `stub_controller` (med fartsregulering fra `speed_node`) og `waypoint_follower` er bare testverktøy til control og autonomy er koblet på, så de skal ikke videreutvikles mer enn testene trenger.
 
 ## Neste steg
-1. Test mot ekte PX4 når control har svart (se «Venter på svar fra control» i [px4.md](px4.md)).
+1. Full test med MotorOutput og SeapathData når `proteus_board` kompilerer (se «Venter på svar fra control» i [px4.md](px4.md)).
 2. Bro fra autonomy til `CCommand`, når autonomy-noden og mottakeren hos control finnes (se [px4.md](px4.md)).
 3. Publiser bøyeposisjoner fra simulatoren (breddegrad og lengdegrad), når autonomy har sagt hvilket topic og hvilken meldingstype noden deres leser.
 4. Sett inn ekte tall for båten når CAD-modell, motorvalg og analyse finnes.

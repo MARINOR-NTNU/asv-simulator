@@ -24,3 +24,10 @@
 - ROS og VRX bruker ENU/FLU, PX4 og Seapath bruker NED/FRD. Omregningen ligger i `sim_interface/frames.py`.
 - Meldinger til PX4 sendes med `timestamp = 0`. Da setter PX4 sin egen tid når meldingen kommer fram. Andre verdier regnes om med agentens klokke (ekte tid), og sim-tid ville blitt feil.
 - PX4 publiserer best effort, så abonnementer på `/fmu/out/...` må bruke `qos_profile_sensor_data`.
+
+## PX4 i containeren
+- `none_iris` (`PX4_SYS_AUTOSTART=10016`) henger ved oppstart og venter på en simulator på TCP 4560. Da startes aldri `uxrce_dds_client`. Bruk `sihsim_quadx` (10040) til control har et bygg uten `simulator_mavlink`.
+- Monter hele repoet i PX4-containeren, ikke bare submodulen. Submodulens `.git` er en fil som peker til `../../.git/modules/`, og PX4 trenger git under bygget.
+- Kjør PX4-containeren som brukeren (`--user`), ellers eies `build/` og `.git/modules/` av root.
+- PX4 sine egne submoduler hentes av bygget selv. Ikke bruk `git submodule update --recursive`, det henter NuttX og mye annet vi ikke trenger.
+- Agenten viser PX4 sine forbindelser som `_CREATED_BY_BARE_DDS_APP_` i ROS 2, ikke som en node.

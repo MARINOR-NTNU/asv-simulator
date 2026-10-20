@@ -3,9 +3,9 @@
 Kjøres i simulator-containeren mens simulatoren kjører:
     ros2 run sim_interface px4_check
 
-PX4 sine forbindelser lages av agenten, som ikke er en ROS-node. De vises derfor uten nodenavn
-(_NODE_NAME_UNKNOWN_) i ROS 2. Det er slik verktøyet ser at PX4 er koblet til. Ikke testet mot
-ekte PX4 ennå.
+PX4 sine forbindelser lages av agenten, som ikke er en ROS-node. De vises derfor med et
+plassholdernavn i stedet for et nodenavn (_CREATED_BY_BARE_DDS_APP_ med agent v2.4.2 og Humble,
+testet mot ekte PX4 2026-10-20). Det er slik verktøyet ser at PX4 er koblet til.
 """
 import math
 import os
@@ -18,7 +18,8 @@ from px4_msgs.msg import MotorOutput, SeapathData
 from rclpy.qos import qos_profile_sensor_data
 from rosgraph_msgs.msg import Clock
 
-UNKNOWN = '_NODE_NAME_UNKNOWN_'
+# Nodenavnene agenten gir PX4 sine forbindelser. Det første er det vi ser med agent v2.4.2.
+PX4_NODE_NAMES = ('_CREATED_BY_BARE_DDS_APP_', '_NODE_NAME_UNKNOWN_')
 MOTOR = '/fmu/out/motor_output'
 SEAPATH = '/fmu/in/seapath_data'
 MOTOR_FIELDS = ('forward_propeller_thrust', 'port_side_thrust', 'port_side_angle',
@@ -119,7 +120,7 @@ def main():
     r.section('PX4')
     topics = node.get_topic_names_and_types()
     from_px4 = [t for t, _ in topics if t.startswith('/fmu/') and any(
-        e.node_name == UNKNOWN for e in
+        e.node_name in PX4_NODE_NAMES for e in
         node.get_publishers_info_by_topic(t) + node.get_subscriptions_info_by_topic(t))]
     if from_px4:
         r.ok(f'PX4 er koblet til agenten ({len(from_px4)} /fmu-topics fra PX4)')
@@ -133,8 +134,8 @@ def main():
             f'ROS_DOMAIN_ID her er {domain}. Den må være lik UXRCE_DDS_DOM_ID i PX4.'])
 
     pubs = node.get_publishers_info_by_topic(MOTOR)
-    px4_pubs = [p for p in pubs if p.node_name == UNKNOWN]
-    other_pubs = sorted({p.node_name for p in pubs if p.node_name != UNKNOWN})
+    px4_pubs = [p for p in pubs if p.node_name in PX4_NODE_NAMES]
+    other_pubs = sorted({p.node_name for p in pubs if p.node_name not in PX4_NODE_NAMES})
     if px4_pubs:
         wrong = {p.topic_type for p in px4_pubs} - {'px4_msgs/msg/MotorOutput'}
         if wrong:
@@ -149,7 +150,7 @@ def main():
     if other_pubs:
         r.info(f'{MOTOR} kommer også fra {", ".join(other_pubs)}, ikke fra PX4 (f.eks. ros2 topic pub).')
 
-    if any(s.node_name == UNKNOWN for s in node.get_subscriptions_info_by_topic(SEAPATH)):
+    if any(s.node_name in PX4_NODE_NAMES for s in node.get_subscriptions_info_by_topic(SEAPATH)):
         r.ok(f'PX4 tar imot {SEAPATH}')
     elif from_px4:
         r.fail(f'PX4 tar ikke imot {SEAPATH}', [

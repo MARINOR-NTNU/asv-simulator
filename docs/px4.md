@@ -9,7 +9,7 @@ VRX-sensorer → px4_seapath_bridge → SeapathData → PX4 (control) → MotorO
 Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatorene til control kjører uendret.
 
 ## Control sin PX4-fork
-- `MARINOR-NTNU/Flightcontroller-px4`. `git describe` gir `v1.18.0-beta1-828`, altså PX4 sin utviklingsgren. Vi endrer ikke koden deres, vi leser den bare (`git show`, `git ls-tree`).
+- `MARINOR-NTNU/Flightcontroller-px4`. `git describe` gir `v1.18.0-beta1-828`, altså PX4 sin utviklingsgren. Vi endrer ikke koden deres. Siden 2026-10-20 ligger den som submodule i `px4/Flightcontroller-px4` (se «PX4 i vår egen container» under).
 - Control bruker egne uORB-meldinger og noder, ikke PX4 sine vanlige actuator-topics. Kjeden er CCommand → regulatorene → `switch_wrench` → `thrust_allocator` → `switch_motor_output` → MotorOutput → `motor_writer`, med SeapathData fra `seapath` inn til regulatorene.
 - Per 2026-10-19 er kjeden spredt på flere grener, og ingen gren har alt:
 
@@ -26,10 +26,24 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
 - Control sier (2026-10-19) at alt skal samles på `main`, men vet at koden er spredt nå. Feature-grener kan testes med `PX4_BRANCH=<gren> scripts/sync_px4_msgs.sh` (se px4_msgs under).
 - Control startet først PX4 med `make px4_sitl_sih sihsim_quadx` (2026-10-19), altså SITL med PX4 sin innebygde simulator (SIH) som simulerer et quadkopter.
 - Nå sier de `make px4_sitl_proteus none_iris` (2026-10-20): PX4 uten mikrokontroller og uten fysikkmotor. Det passer med at VRX er fysikken, og det fjerner quadkopteret fra SIH. Per 2026-10-20 finnes ikke `px4_sitl_proteus` på GitHub. Grenen `feature/control/proteus_board` har bare `boards/px4/fmu-v6c/proteus.px4board`, som er et bygg for Pixhawk-kortet (`make px4_fmu-v6c_proteus upload`). Det har ingen av modulene til control (`switch_motor_output`, `seapath`, `thrust_allocator`, `transit_controller`), men PX4 sine quadkopter-regulatorer og EKF2.
-- `none_iris` er airframe-fila `10016_none_iris`. Da starter `px4-rc.simulator` modulen `simulator_mavlink`, som venter på en simulator over MAVLink på TCP 4560. SITL-bygg går som standard i lockstep, der PX4 sin klokke bare går når simulatoren sender sensordata over den forbindelsen. Uten simulator står klokka trolig stille, og da kjører ingen moduler. Det unngås med `CONFIG_BOARD_NOLOCKSTEP=y` i bygget. Ikke sjekket, fordi bygget ikke er pushet.
+- `none_iris` er airframe-fila `10016_none_iris`. Da starter `px4-rc.simulator` modulen `simulator_mavlink`, som venter på en simulator over MAVLink på TCP 4560. Testet 2026-10-20 (`px4_sitl_default`): oppstartsskriptet stopper der («Waiting for simulator to accept connection on TCP port 4560»), så verken `uxrce_dds_client` eller noen andre moduler etter den linja startes. PX4 kobler seg aldri til agenten. `none_iris` kan altså ikke brukes uten en simulator på TCP 4560, uansett lockstep.
 - Per 2026-10-19 er ingen av de to SITL-byggene komplette: `sih.px4board` har `switch_wrench`, `thrust_allocator` og `transit_controller` (grenen `thrust_allocator`), og `default.px4board` har `seapath` (grenen `seapathDriver`). `switch_motor_output` og `motor_writer` er bare slått på i `boards/px4/fmu-v6c`, og `switch_motor_output start` står bare i `rc.board_defaults` der. I SITL sender PX4 derfor ingen MotorOutput.
 - I SITL kobler PX4 seg til agenten på 127.0.0.1:8888 (`UXRCE_DDS_AG_IP` i `init.d-posix/rcS`). Agenten kjører i vår container, så control sin container må kjøre med `--net=host`, eller så må `UXRCE_DDS_AG_IP` settes til IP-en vår (`param set`, ingen kodeendring).
 - Motor-committen deres endrer `boards/px4/fmu-v6c`, så kortet er trolig en Pixhawk 6C (ikke bekreftet).
+
+## PX4 i vår egen container (fra 2026-10-20)
+Bestemt 2026-10-20: control sin PX4-kode kjøres som SITL fra vårt repo, i en egen container ved siden av VRX-containeren. Agenten blir i VRX-containeren. Oppskriften står i README under «Kjøre control sin PX4 mot simulatoren».
+- Koden ligger som submodule i `px4/Flightcontroller-px4`, låst til én commit på `feature/control/proteus_board`. Vi endrer ikke koden der, men kan sjekke ut andre commits lokalt for å teste.
+- `Dockerfile.px4` gir imaget `px4-sitl:proteus` med bare verktøykjeden. Koden monteres inn og bygges i containeren. Hele repoet monteres, fordi submodulens `.git` peker til `../../.git/modules/`.
+- `docker-compose.yml` starter `vrx` og `px4` med host-nettverk, så PX4 finner agenten på 127.0.0.1:8888. PX4 kjører som brukeren på verten, så byggefilene ikke eies av root.
+- `.dockerignore` holder submodulen (flere GB) utenfor byggekonteksten til begge imagene.
+
+Testet 2026-10-20 med `sim:=fast`:
+- `proteus_board` (`363af02f1b`) kompilerer ikke: `uORB/ucdr/motor_output.h: No such file or directory`. `dds_topics.yaml` har `motor_output`, men `MotorOutput.msg` er ikke merget inn.
+- Commiten `7b3517e1f5` på samme gren feiler i cmake fordi `LICENSE` var slettet (CPack krever den). Den er tilbake i nyere commits.
+- `seapathDriver` (`5df9df6e63`) kompilerer. Med `sihsim_quadx` (`PX4_SYS_AUTOSTART=10040`) kobler PX4 seg til agenten med en gang, og 69 `/fmu`-topics fra PX4 vises i ROS 2. `motor_output` og `seapath_data` mangler, fordi den grenen ikke har dem i `dds_topics.yaml`. Samme resultat med `docker compose up`.
+- Med `none_iris` henger PX4 ved oppstart (se over).
+- Agenten (v2.4.2, Humble) gir PX4 sine forbindelser nodenavnet `_CREATED_BY_BARE_DDS_APP_`. `px4_check` så etter `_NODE_NAME_UNKNOWN_` og sa feilaktig at PX4 ikke var koblet til. Rettet.
 
 ## Meldingene
 - `MotorOutput`: `forward_propeller_thrust`, `port_side_thrust`, `port_side_angle`, `starboard_thrust`, `starboard_angle`.
@@ -92,9 +106,7 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten for
 - Baugthrusteren: positiv mot styrbord (bekreftet), og like sterk begge veier.
 
 ## Venter på svar fra control
-- At de legger `/fmu/out/motor_output` (publications) og `/fmu/in/seapath_data` (subscriptions) inn i `dds_topics.yaml`. Uten det kommer ingenting fram.
-- At de pusher `px4_sitl_proteus`-bygget (`boards/px4/sitl/proteus.px4board`), så vi kan se hvilke moduler som er med.
-- At `switch_motor_output` (og resten av kjeden) er slått på og startes i det bygget.
-- Om PX4 sin klokke går med `none_iris`, eller om den står og venter på TCP 4560 (sjekkes med `uorb top`). Står den, trengs `CONFIG_BOARD_NOLOCKSTEP=y`.
-- At containeren deres kjører med `--net=host` (eller setter `UXRCE_DDS_AG_IP`).
+- `dds_topics.yaml` på `proteus_board`: `motor_output` og `seapath_data` er lagt inn (2026-10-20), men `MotorOutput.msg` mangler på grenen, så den kompilerer ikke. De må merge inn `feature/control/motor_output_and_switch`.
+- At `switch_motor_output` (og resten av kjeden) er slått på og startes i SITL-bygget.
+- Hvilket SITL-bygg og hvilken airframe som skal brukes. `px4_sitl_proteus` finnes ikke på GitHub, og `none_iris` henger ved oppstart. Foreløpig bruker vi `px4_sitl_default` med `sihsim_quadx`.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.

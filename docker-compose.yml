@@ -1,0 +1,57 @@
+# Starter simulatoren og control sin PX4 sammen, i hver sin container:
+#   docker compose up
+# Valg settes som miljøvariabler, f.eks.:
+#   SIM=fast HEADLESS=true docker compose up
+# Begge bruker host-nettverk, så PX4 finner agenten i vrx på 127.0.0.1:8888.
+# For Gazebo-vindu må xhost +local:docker kjøres på verten først.
+
+services:
+  vrx:
+    image: vrx-sim:humble-garden
+    build: .
+    network_mode: host
+    devices:
+      - /dev/dri
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./src:/root/vrx_ws/src/mysrc
+    # Pakkene våre bygges ved hver oppstart, fordi containeren startes på nytt hver gang.
+    command:
+      - bash
+      - -c
+      - >-
+        cd /root/vrx_ws &&
+        MAKEFLAGS=-j1 colcon build --merge-install --executor sequential --parallel-workers 1
+        --packages-select asv_gazebo asv_fastsim sim_interface &&
+        source install/setup.bash &&
+        ros2 launch sim_interface sim.launch.py control:=px4
+        sim:=${SIM:-vrx_asv} headless:=${HEADLESS:-false} forward_thruster:=${FORWARD_THRUSTER:-bow}
+
+  px4:
+    image: px4-sitl:proteus
+    build:
+      context: .
+      dockerfile: Dockerfile.px4
+    network_mode: host
+    # Som brukeren på verten, så filene i px4/Flightcontroller-px4/build ikke eies av root.
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      - HOME=/tmp/home
+    # Hele repoet, fordi submodulens .git peker til ../../.git/modules/.
+    volumes:
+      - .:/repo
+    working_dir: /repo/px4/Flightcontroller-px4
+    # PX4-konsollen (pxh>) nås med docker attach. Ctrl-P Ctrl-Q går ut uten å stoppe PX4.
+    stdin_open: true
+    tty: true
+    # PX4_AIRFRAME: 10040 = sihsim_quadx. 10016 = none_iris henger ved oppstart (venter på TCP 4560).
+    command:
+      - bash
+      - -c
+      - >-
+        mkdir -p $$HOME &&
+        make ${PX4_TARGET:-px4_sitl_default} j=1 &&
+        cd build/${PX4_TARGET:-px4_sitl_default}/rootfs &&
+        PX4_SYS_AUTOSTART=${PX4_AIRFRAME:-10040} ../bin/px4
