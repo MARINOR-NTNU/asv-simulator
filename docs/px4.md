@@ -24,7 +24,9 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
 - `dp_controller` og `switch_vel_heading` finnes ikke på GitHub.
 - Per 2026-10-19 er `transit_controller`, `switch_wrench` og `thrust_allocator` skjeletter fra PX4 sin modulmal. `transit_controller` sender testtall (1 + n, 2 + n, 3 + n) og leser ingen sensorer, `switch_wrench` sender dem videre, og `thrust_allocator` skriver dem bare til loggen og publiserer ingen MotorOutput. Kjeden er altså ikke koblet sammen.
 - Control sier (2026-10-19) at alt skal samles på `main`, men vet at koden er spredt nå. Feature-grener kan testes med `PX4_BRANCH=<gren> scripts/sync_px4_msgs.sh` (se px4_msgs under).
-- Control starter PX4 i en container med `make px4_sitl_sih sihsim_quadx` eller `make px4_sitl_default sihsim_quadx` (2026-10-19). Det er SITL med PX4 sin innebygde simulator (SIH) som simulerer et quadkopter, uten Gazebo. Begge går i sanntid.
+- Control startet først PX4 med `make px4_sitl_sih sihsim_quadx` (2026-10-19), altså SITL med PX4 sin innebygde simulator (SIH) som simulerer et quadkopter.
+- Nå sier de `make px4_sitl_proteus none_iris` (2026-10-20): PX4 uten mikrokontroller og uten fysikkmotor. Det passer med at VRX er fysikken, og det fjerner quadkopteret fra SIH. Per 2026-10-20 finnes ikke `px4_sitl_proteus` på GitHub. Grenen `feature/control/proteus_board` har bare `boards/px4/fmu-v6c/proteus.px4board`, som er et bygg for Pixhawk-kortet (`make px4_fmu-v6c_proteus upload`). Det har ingen av modulene til control (`switch_motor_output`, `seapath`, `thrust_allocator`, `transit_controller`), men PX4 sine quadkopter-regulatorer og EKF2.
+- `none_iris` er airframe-fila `10016_none_iris`. Da starter `px4-rc.simulator` modulen `simulator_mavlink`, som venter på en simulator over MAVLink på TCP 4560. SITL-bygg går som standard i lockstep, der PX4 sin klokke bare går når simulatoren sender sensordata over den forbindelsen. Uten simulator står klokka trolig stille, og da kjører ingen moduler. Det unngås med `CONFIG_BOARD_NOLOCKSTEP=y` i bygget. Ikke sjekket, fordi bygget ikke er pushet.
 - Per 2026-10-19 er ingen av de to SITL-byggene komplette: `sih.px4board` har `switch_wrench`, `thrust_allocator` og `transit_controller` (grenen `thrust_allocator`), og `default.px4board` har `seapath` (grenen `seapathDriver`). `switch_motor_output` og `motor_writer` er bare slått på i `boards/px4/fmu-v6c`, og `switch_motor_output start` står bare i `rc.board_defaults` der. I SITL sender PX4 derfor ingen MotorOutput.
 - I SITL kobler PX4 seg til agenten på 127.0.0.1:8888 (`UXRCE_DDS_AG_IP` i `init.d-posix/rcS`). Agenten kjører i vår container, så control sin container må kjøre med `--net=host`, eller så må `UXRCE_DDS_AG_IP` settes til IP-en vår (`param set`, ingen kodeendring).
 - Motor-committen deres endrer `boards/px4/fmu-v6c`, så kortet er trolig en Pixhawk 6C (ikke bekreftet).
@@ -76,7 +78,7 @@ Control sin kjede starter med `CCommand`, som på båten kommer over MAVLink fra
 Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten forskjell betyr det lite, men skal simulatoren gå fortere enn sanntid, må PX4 sin klokke også gå fortere.
 - Gazebo med vår båt går på 0,99 av sanntid, så sanntid holder der.
 - For å kjøre fortere er det enkleste trolig `sim:=fast` på N ganger sanntid og PX4 med `PX4_SIM_SPEED_FACTOR=N`. Da går de like fort, men er ikke låst sammen, så det glir hvis en av dem henger etter. Ikke testet med SIH.
-- Ekte lockstep krever at PX4 tar tiden sin fra simulatoren. Det må gjøres i koden til control.
+- Ekte lockstep krever at PX4 tar tiden sin fra simulatoren. Med `none_iris` kunne vi i prinsippet koblet oss til `simulator_mavlink` på TCP 4560 og sendt sensordata med simuleringstid, men da simulerer vi sensorene inne i PX4 i tillegg til SeapathData. Det er ikke valgt.
 
 ## Svar fra control 2026-10-19
 - Gren: skal være `main`, men koden er spredt nå.
@@ -84,14 +86,15 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten for
 - `seapath` og `motor_writer`: kan slås av med egen sim-config, men de spør om det er et problem. I SITL er det trolig ikke det: `seapath` finner ingen serieport og publiserer ingenting, og `motor_writer` skriver bare til loggen (200 Hz). Se SeapathData over om `vehicle_*`-topicene.
 - SeapathData: posisjon, heading og kurs, gjerne hele meldingen.
 - Klokka: se over.
-- Hvordan de starter PX4: `make px4_sitl_sih sihsim_quadx` (eller `px4_sitl_default`) i en container.
+- Hvordan de starter PX4: `make px4_sitl_sih sihsim_quadx` (eller `px4_sitl_default`) i en container. Endret 2026-10-20 til `make px4_sitl_proteus none_iris` (se over).
 - Vinklene: radianer, positiv mot babord sett bakfra, ±90°.
 - Bakover: -100 % er ca. 60 % av kraften forover.
 - Baugthrusteren: positiv mot styrbord (bekreftet), og like sterk begge veier.
 
 ## Venter på svar fra control
 - At de legger `/fmu/out/motor_output` (publications) og `/fmu/in/seapath_data` (subscriptions) inn i `dds_topics.yaml`. Uten det kommer ingenting fram.
-- At de slår på og starter `switch_motor_output` i SITL-bygget de bruker, og hvilken gren hele kjeden skal samles på for SITL.
+- At de pusher `px4_sitl_proteus`-bygget (`boards/px4/sitl/proteus.px4board`), så vi kan se hvilke moduler som er med.
+- At `switch_motor_output` (og resten av kjeden) er slått på og startes i det bygget.
+- Om PX4 sin klokke går med `none_iris`, eller om den står og venter på TCP 4560 (sjekkes med `uorb top`). Står den, trengs `CONFIG_BOARD_NOLOCKSTEP=y`.
 - At containeren deres kjører med `--net=host` (eller setter `UXRCE_DDS_AG_IP`).
-- Om regulatorene leser `seapath_data` eller `vehicle_*`-topicene. Med `sihsim_quadx` kommer `vehicle_*` fra et simulert quadkopter.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.
