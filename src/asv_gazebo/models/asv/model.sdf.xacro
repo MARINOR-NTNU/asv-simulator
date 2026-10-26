@@ -5,6 +5,8 @@
   - xacro/parameters.xacro: alle tall som skal byttes ut med ekte verdier
   - xacro/thrusters.xacro: thrusterne
   - xacro/sensors.xacro: sensorene
+  - components.yaml: komponentene om bord (batteri, elektronikk osv.), innenfor totalvekten
+  - xacro/components.xacro: lager komponentene fra components.yaml
 
   Skrogfilen skrog10-1.stl er delt i skrog, thrusterhus og propeller (meshes/), slik at
   thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Fysikken er
@@ -21,6 +23,17 @@
   <xacro:include filename="xacro/parameters.xacro"/>
   <xacro:include filename="xacro/thrusters.xacro"/>
   <xacro:include filename="xacro/sensors.xacro"/>
+  <xacro:include filename="xacro/components.xacro"/>
+
+  <!-- Skroget får det som er igjen av totalvekten, så totalen alltid er total_mass. -->
+  <xacro:property name="fixed_parts_mass" value="${2 * pod_mass + 3 * prop_mass + hydro_mass}"/>
+  <xacro:property name="hull_mass" value="${total_mass - components_mass - fixed_parts_mass}"/>
+  <xacro:if value="${hull_mass &lt;= 0}">
+    ${xacro.error('Komponentene i components.yaml (%.1f kg) og thrusterne (%.1f kg) veier mer enn total_mass (%.1f kg).' % (components_mass, fixed_parts_mass, total_mass))}
+    <!-- xacro.error stopper ikke, så navnet under (som ikke finnes) stopper xacro og bygget. -->
+    ${STOPP_komponentene_er_for_tunge}
+  </xacro:if>
+  <xacro:property name="hull_share" value="${hull_mass / total_mass}"/>
 
   <model name="asv">
 
@@ -29,7 +42,7 @@
         <pose>${hull_cog} 0 0 0</pose>
         <mass>${hull_mass}</mass>
         <inertia>
-          <ixx>${hull_ixx}</ixx><iyy>${hull_iyy}</iyy><izz>${hull_izz}</izz>
+          <ixx>${hull_ixx * hull_share}</ixx><iyy>${hull_iyy * hull_share}</iyy><izz>${hull_izz * hull_share}</izz>
           <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
         </inertia>
       </inertial>
@@ -63,7 +76,7 @@
     <link name="hydro_link">
       <pose>${hydro_pose} 0 0 0</pose>
       <inertial>
-        <mass>0.1</mass>
+        <mass>${hydro_mass}</mass>
         <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
       </inertial>
     </link>
@@ -71,6 +84,9 @@
       <parent>base_link</parent>
       <child>hydro_link</child>
     </joint>
+
+    <!-- Komponentene fra components.yaml (batteri, elektronikk osv.). -->
+    <xacro:all_components items="${components}"/>
 
     <xacro:steerable_thruster side="left" y_sign="1"/>
     <xacro:steerable_thruster side="right" y_sign="-1"/>

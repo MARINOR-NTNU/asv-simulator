@@ -26,6 +26,7 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Anslag som må erstattes med ekte tall: tyngdepunkt, treghetsmoment (regnet som en massiv boks), maks thrust (50 N akter, 25 N baug), hvor fort akterthrusterne dreier (2 rad/s), og motstanden i vannet (regnet ut fra skrogformen, ikke målt).
 - Medsvingende vannmasse (`xDotU`, `yDotV`, `nDotR`) er satt til 0, så båten reagerer raskere sidelengs og i dreiing enn den virkelige vil gjøre. Det betyr mest for DP.
 - Siden 2026-10-26 er modellen skrevet i xacro (`asv_gazebo/models/asv/model.sdf.xacro`), med alle tallene i `xacro/parameters.xacro`. Den genererte `model.sdf` er sjekket lik den gamle, og båten holder heading og fart i Gazebo som før.
+- Fra 2026-10-26 ligger komponentene om bord i `asv_gazebo/models/asv/components.yaml` (masse, plassering, størrelse). Totalvekten er fast på 45 kg (`total_mass`), og skroget får det som er igjen. Før veide modellen 46,4 kg, fordi thrusterne kom i tillegg til skroget. Testet: 45,00 kg uten komponenter, og et batteri på 8 kg langt bak gir 3,7° akterlig trim. Ingen komponenter er lagt inn ennå.
 - Det finnes ingen CAD-modell ennå. Stabilitets- og hydrodynamikkanalyse er planlagt, og tallene derfra skal inn i modellen.
 
 ## Grensesnittet mot control og autonomy

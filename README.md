@@ -118,13 +118,20 @@ Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/as
 - `models/asv/xacro/parameters.xacro`: **alle tallene** (masse, tyngdepunkt, motstand, thrusterposisjoner, maks thrust, dreiegrenser, sensorfrekvenser). Her endres båten.
 - `models/asv/xacro/thrusters.xacro`: én makro for dreibar thruster (brukt for venstre og høyre) og én for baugthrusteren.
 - `models/asv/xacro/sensors.xacro`: IMU og GPS. Nye sensorer legges til her.
+- `models/asv/components.yaml`: **komponentene om bord** (batteri, elektronikk osv.), én linje per komponent med masse, plassering og størrelse.
+
+**Totalvekten er fast på 45 kg** (`total_mass`), med skrog, thrustere og alle komponentene. Skroget får massen som er igjen, så dypgangen er den samme uansett hva som legges inn. Komponentene flytter tyngdepunktet etter hvor de står: et batteri på 8 kg ved x = −0,6 m gir ca. 3,7° akterlig trim. Veier komponentene mer enn totalvekten, stopper bygget med en feilmelding. Komponentene vises som oransje bokser i Gazebo.
+```yaml
+components:
+  - {name: battery, mass: 8.0, x: -0.25, y: 0.0, z: -0.15, size: [0.30, 0.15, 0.10]}
+```
 
 Bygg `asv_gazebo` på nytt etter en endring. Tallene i dag:
 
 | Størrelse | Verdi | Kilde |
 |---|---|---|
 | Lengde, bredde | 1,50 m, 0,53 m | målt fra STL-filen |
-| Masse | 45 kg | totalvekt med last er 40–50 kg |
+| Masse | 45 kg totalt, med thrustere og komponenter | anslått totalvekt |
 | Dypgang | 10,5 cm | følger av massen og skrogformen |
 | Maks thrust | 50 N per thruster akter, 25 N i baugen | anslag |
 | Dreiing av thrustere | ±90°, 2 rad/s | anslag |

@@ -1,0 +1,17 @@
+# Komponentene om bord. Det er her båten endres når det kommer nye ting (batteri, elektronikk osv.).
+#
+# Totalvekten er fast (total_mass i xacro/parameters.xacro, 45 kg med alt). Skroget får massen som
+# er igjen etter komponentene og thrusterne, så totalen og dypgangen er den samme uansett hva som
+# står her. Det som ikke er lagt inn ennå, ligger i skroget, i tyngdepunktet hull_cog. Hver
+# komponent flytter derfor tyngdepunktet etter hvor den er plassert, slik den ekte båten gjør.
+#
+# Felter:
+#   name     unikt navn (blir navnet på delen i Gazebo)
+#   mass     kg
+#   x, y, z  midten av komponenten i meter: origo midt i lengden, x forover, y mot babord, z opp
+#            (kjøl ved z = -0,25, dekk ved ca. z = 0,12)
+#   size     lengde, bredde, høyde i meter (brukes til treghetsmoment og til en boks i Gazebo)
+#
+# Eksempel:
+#   - {name: battery, mass: 8.0, x: -0.25, y: 0.0, z: -0.15, size: [0.30, 0.15, 0.10]}
+components: []

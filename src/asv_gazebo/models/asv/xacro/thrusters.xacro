@@ -59,12 +59,12 @@
     <link name="${side}_pod_link">
       <pose>${pose}</pose>
       <xacro:dark_visual name="${side}_pod_visual" mesh="${side}_pod.stl"/>
-      <xacro:small_inertial mass="0.5" inertia="0.001"/>
+      <xacro:small_inertial mass="${pod_mass}" inertia="0.001"/>
     </link>
     <link name="${side}_prop_link">
       <pose>${pose}</pose>
       <xacro:dark_visual name="${side}_rotor_visual" mesh="${side}_rotor.stl"/>
-      <xacro:small_inertial mass="0.1" inertia="0.0001"/>
+      <xacro:small_inertial mass="${prop_mass}" inertia="0.0001"/>
     </link>
     <joint name="${side}_pod_joint" type="revolute">
       <parent>base_link</parent>
@@ -93,7 +93,7 @@
   <xacro:macro name="bow_thruster">
     <link name="bow_prop_link">
       <pose>${bow_x} 0 ${bow_z} 0 0 0</pose>
-      <xacro:small_inertial mass="0.1" inertia="0.0001"/>
+      <xacro:small_inertial mass="${prop_mass}" inertia="0.0001"/>
     </link>
     <joint name="bow_prop_joint" type="revolute">
       <parent>base_link</parent>

@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!--
+  Komponentene fra components.yaml (stien regnes fra model.sdf.xacro): én del per komponent, festet til skroget, med masse,
+  treghetsmoment (massiv boks) og en enkel boks som vises i Gazebo. Ingen kollisjon, de er inne i skroget.
+-->
+<sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="components" value="${xacro.load_yaml('components.yaml')['components'] or []}"/>
+  <xacro:property name="components_mass" value="${math.fsum([c['mass'] for c in components])}"/>
+
+  <xacro:macro name="component" params="name mass x y z size">
+    <xacro:property name="l" value="${size[0]}"/>
+    <xacro:property name="b" value="${size[1]}"/>
+    <xacro:property name="h" value="${size[2]}"/>
+    <link name="${name}_link">
+      <pose>${x} ${y} ${z} 0 0 0</pose>
+      <inertial>
+        <mass>${mass}</mass>
+        <inertia>
+          <ixx>${mass / 12.0 * (b * b + h * h)}</ixx>
+          <iyy>${mass / 12.0 * (l * l + h * h)}</iyy>
+          <izz>${mass / 12.0 * (l * l + b * b)}</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <visual name="${name}_visual">
+        <geometry><box><size>${l} ${b} ${h}</size></box></geometry>
+        <material>
+          <ambient>0.9 0.5 0.1 1</ambient>
+          <diffuse>0.9 0.5 0.1 1</diffuse>
+        </material>
+      </visual>
+    </link>
+    <joint name="${name}_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>${name}_link</child>
+    </joint>
+  </xacro:macro>
+
+  <!-- Setter inn alle komponentene, én om gangen. -->
+  <xacro:macro name="all_components" params="items">
+    <xacro:if value="${len(items) > 0}">
+      <xacro:property name="c" value="${items[0]}"/>
+      <xacro:component name="${c['name']}" mass="${c['mass']}" x="${c['x']}" y="${c['y']}"
+                       z="${c['z']}" size="${c['size']}"/>
+      <xacro:all_components items="${items[1:]}"/>
+    </xacro:if>
+  </xacro:macro>
+
+</sdf>

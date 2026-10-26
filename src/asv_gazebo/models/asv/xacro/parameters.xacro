@@ -7,11 +7,14 @@
 -->
 <sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!-- Skroget. ANSLAG: 45 kg, midt i spennet 40-50 kg. Gir vannlinje ved z = -0,145
-       (dypgang 10,5 cm). 40 kg gir z = -0,153 og 50 kg gir z = -0,136. -->
-  <xacro:property name="hull_mass" value="45.0"/>
+  <!-- Totalvekten med alt (skrog, thrustere og komponentene i components.yaml), anslått til 45 kg.
+       Gir vannlinje ved z = -0,145 (dypgang 10,5 cm). 40 kg gir z = -0,153 og 50 kg gir z = -0,136.
+       Skroget får massen som er igjen etter thrusterne og komponentene (model.sdf.xacro). -->
+  <xacro:property name="total_mass" value="45.0"/>
+  <!-- Tyngdepunktet til skroget og alt som ikke er lagt inn som egen komponent. ANSLAG. -->
   <xacro:property name="hull_cog" value="-0.19 0 -0.12"/>
-  <!-- Treghetsmomentet er regnet som en massiv boks. -->
+  <!-- Treghetsmomentet for hele båten (45 kg), regnet som en massiv boks. Skroget får en andel
+       etter massen sin, og komponentene legger til sitt eget der de står. -->
   <xacro:property name="hull_ixx" value="1.24"/>
   <xacro:property name="hull_iyy" value="7.65"/>
   <xacro:property name="hull_izz" value="8.3"/>
@@ -72,6 +75,11 @@
   <xacro:property name="stern_max_thrust" value="50"/>
   <xacro:property name="stern_min_thrust" value="-30"/>
   <xacro:property name="stern_prop_diameter" value="0.09"/>
+  <!-- Massen til thrusterhusene og propellene (egne deler i modellen, regnet med i total_mass). -->
+  <xacro:property name="pod_mass" value="0.5"/>
+  <xacro:property name="prop_mass" value="0.1"/>
+  <!-- Punktet vannmotstanden angriper i er en egen del med litt masse (Gazebo krever det). -->
+  <xacro:property name="hydro_mass" value="0.1"/>
   <!-- Dreiing: +-90° er bekreftet (control, 2026-10-19), og grensen ligger i thruster_adapter.
        Leddet tillater litt mer, for et ledd som kjøres helt i stopp, låser seg.
        ANSLAG: at de dreier 2 rad/s. -->
