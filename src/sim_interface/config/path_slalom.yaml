@@ -1,5 +1,5 @@
-# Bane gjennom slalåmløypa fra asv_gazebo/launch/slalom.launch.py, i sydney_regatta.
-# Punktene er x, y i meter (øst, nord) fra startstedet til båten (x = -532, y = 162 i verden),
+# Bane gjennom slalåmløypa fra asv_gazebo/launch/slalom.launch.py, i open_water eller sydney_regatta.
+# Punktene er x, y i meter (øst, nord) fra startstedet til båten (origo i open_water, x = -532, y = 162 i sydney_regatta),
 # som står fast i origin. Da treffer banen løypa selv om båten har drevet før start.
 # Nordover i sikksakk 3 m på hver side av bøyene i x = 0, så tilbake sørover i x = 12.
 waypoint_follower:

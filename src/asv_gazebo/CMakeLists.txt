@@ -15,8 +15,24 @@ add_custom_command(
   COMMENT "Lager model.sdf fra xacro")
 add_custom_target(asv_model ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/model.sdf)
 
+# Verdenene lages på samme måte, og Gazebo finner dem ved navn (asv.launch.py legger mappa til
+# GZ_SIM_RESOURCE_PATH).
+file(GLOB WORLD_XACRO ${CMAKE_CURRENT_SOURCE_DIR}/worlds/*.sdf.xacro)
+foreach(src ${WORLD_XACRO})
+  get_filename_component(name ${src} NAME_WE)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/worlds/${name}.sdf
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/worlds
+    COMMAND ${XACRO} ${src} -o ${CMAKE_CURRENT_BINARY_DIR}/worlds/${name}.sdf
+    DEPENDS ${src}
+    COMMENT "Lager ${name}.sdf fra xacro")
+  list(APPEND WORLDS ${CMAKE_CURRENT_BINARY_DIR}/worlds/${name}.sdf)
+endforeach()
+add_custom_target(asv_worlds ALL DEPENDS ${WORLDS})
+
 install(DIRECTORY models launch DESTINATION share/${PROJECT_NAME}
   PATTERN "*.xacro" EXCLUDE PATTERN "xacro" EXCLUDE)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/model.sdf DESTINATION share/${PROJECT_NAME}/models/asv)
+install(FILES ${WORLDS} DESTINATION share/${PROJECT_NAME}/worlds)
 
 ament_package()

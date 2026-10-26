@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<!--
+  Åpent hav uten land: bare vannflaten fra VRX (6 x 6 km), bølger, sol og himmel. open_water.sdf
+  lages fra denne fila når asv_gazebo bygges. Bøyer og andre ting settes inn etterpå.
+
+  Båten starter i origo. GPS-origo er stedet båten startet i sydney_regatta, så GPS, kompasset
+  i px4_hil_bridge (mag_ned), asv_fastsim og baner med fast origin stemmer med begge verdenene.
+-->
+<sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- GPS-posisjonen til origo -->
+  <xacro:property name="latitude" value="-33.722768768890596"/>
+  <xacro:property name="longitude" value="150.67399110173986"/>
+
+  <!-- Bølger (Gerstner-bølger i VRX). gain er omtrent bølgehøyden i meter, period i sekunder,
+       direction i radianer, steepness 0-1. Samme som sydney_regatta. -->
+  <xacro:property name="wave_gain" value="0.3"/>
+  <xacro:property name="wave_period" value="5"/>
+  <xacro:property name="wave_direction" value="0.0"/>
+  <xacro:property name="wave_steepness" value="0"/>
+
+  <xacro:macro name="wave_param" params="key value">
+    params {
+      key: "${key}"
+      value {
+        type: DOUBLE
+        double_value: ${value}
+      }
+    }
+  </xacro:macro>
+
+  <world name="open_water">
+
+    <physics name="4ms" type="dart">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Uten <gui> bruker Gazebo standardvinduet. -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-magnetometer-system" name="gz::sim::systems::Magnetometer"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+
+    <scene>
+      <sky></sky>
+      <grid>false</grid>
+      <ambient>1.0 1.0 1.0</ambient>
+      <background>0.8 0.8 0.8</background>
+    </scene>
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>${latitude}</latitude_deg>
+      <longitude_deg>${longitude}</longitude_deg>
+      <elevation>0.0</elevation>
+      <heading_deg>0.0</heading_deg>
+    </spherical_coordinates>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Vannflaten fra VRX, 6 x 6 km. -->
+    <include>
+      <name>water</name>
+      <pose>0 0 0 0 0 0</pose>
+      <uri>coast_waves</uri>
+    </include>
+
+    <!-- Bølgene. Oppdriften til båten og bøyene leser dem fra samme topic. -->
+    <plugin filename="libPublisherPlugin.so" name="vrx::PublisherPlugin">
+      <message type="gz.msgs.Param" topic="/vrx/wavefield/parameters" every="2.0">
+        <xacro:wave_param key="direction" value="${wave_direction}"/>
+        <xacro:wave_param key="gain" value="${wave_gain}"/>
+        <xacro:wave_param key="period" value="${wave_period}"/>
+        <xacro:wave_param key="steepness" value="${wave_steepness}"/>
+      </message>
+    </plugin>
+
+  </world>
+</sdf>

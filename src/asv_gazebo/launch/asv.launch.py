@@ -1,4 +1,4 @@
-"""Starter en VRX-verden med vår egen ASV i stedet for WAM-V."""
+"""Starter en verden med vår egen ASV: open_water (vår, uten land) eller en VRX-verden som sydney_regatta."""
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -8,8 +8,12 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import vrx_gz.launch
 
-# Samme startsted som WAM-V i sydney_regatta. z er løftet slik at vannlinjen havner i z = 0.
-SPAWN = {'x': '-532', 'y': '162', 'z': '0.145', 'Y': '1.0'}
+# Startsted per verden. z er løftet slik at vannlinjen havner i z = 0. I sydney_regatta er det
+# samme sted som WAM-V, og open_water har GPS-origo der, så båten starter på samme GPS-posisjon.
+SPAWN = {
+    'open_water': {'x': '0', 'y': '0', 'z': '0.145', 'Y': '1.0'},
+    'sydney_regatta': {'x': '-532', 'y': '162', 'z': '0.145', 'Y': '1.0'},
+}
 
 BRIDGES = [
     '/asv/thrusters/left/thrust@std_msgs/msg/Float64]ignition.msgs.Double',
@@ -33,7 +37,7 @@ def launch(context, *args, **kwargs):
     processes = vrx_gz.launch.simulation(world, headless)
     processes.extend(vrx_gz.launch.competition_bridges(world))
     spawn_args = ['-name', 'asv', '-file', model]
-    for key, value in SPAWN.items():
+    for key, value in SPAWN[world].items():
         spawn_args.extend(['-' + key, value])
     processes.append(Node(
         package='ros_gz_sim', executable='create', output='screen', arguments=spawn_args))
@@ -45,10 +49,11 @@ def launch(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    models = os.path.join(get_package_share_directory('asv_gazebo'), 'models')
+    share = get_package_share_directory('asv_gazebo')
     return LaunchDescription([
-        DeclareLaunchArgument('world', default_value='sydney_regatta'),
+        DeclareLaunchArgument('world', default_value='open_water', choices=list(SPAWN)),
         DeclareLaunchArgument('headless', default_value='False'),
-        AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', models),
+        AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', os.path.join(share, 'models')),
+        AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', os.path.join(share, 'worlds')),
         OpaqueFunction(function=launch),
     ])

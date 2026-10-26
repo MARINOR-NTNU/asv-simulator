@@ -16,6 +16,10 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Trygg hastighet med hele ROS-kjeden er 20 ganger sanntid. Ved 46 ganger henger nodene etter, og regulatoren blir ustabil.
 - Ikke laget ennå: scenariokjører (situasjoner fra fil eller tilfeldig, resultater til CSV). Venter på hva autonomy vil teste.
 
+## Verdenen
+- Fra 2026-10-26 er standard `open_water`: åpent hav (6 × 6 km) uten land, med bølger, i `asv_gazebo/worlds/open_water.sdf.xacro`. GPS-origo er startstedet fra `sydney_regatta`, så GPS, kompasset til PX4 og banene med fast origin er uendret. Testet med slalåmløypa og `path_slalom` (6 av 7 punkter på 75 s). `world:=sydney_regatta` virker fortsatt.
+- Neste: testoppsett (bøyer, dokk) i scenariofiler med én funksjon per type, i stedet for å skrive dem inn i launch-filer.
+
 ## Vår egen båt (`asv_gazebo`)
 - Testet i VRX 2026-10-12: den flyter på riktig høyde, holder kursen rett frem ved alle hastigheter, er symmetrisk mot babord og styrbord, og følger en bane med `sim:=vrx_asv`.
 - Bekreftet 2026-10-19: lengde ca. 150 cm, bredde ca. 53 cm (L/B ≈ 2,8), vekt ca. 45 kg, lavt tyngdepunkt, baugthruster i tunnel for sideveis manøvrering i lav fart, og to akterthrustere som kan dreies. Modellen stemmer med dette.

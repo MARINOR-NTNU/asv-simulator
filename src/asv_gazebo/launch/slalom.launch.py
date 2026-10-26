@@ -1,18 +1,19 @@
-"""Legger ut en slalåmløype i en kjørende sydney_regatta.
+"""Legger ut en slalåmløype i en kjørende verden (world:=open_water eller sydney_regatta).
 
-Startes etter asv.launch.py. Banen gjennom løypa er sim_interface/config/path_slalom.yaml.
+Startes etter asv.launch.py, med samme world. Banen gjennom løypa er sim_interface/config/path_slalom.yaml.
 Fire bøyer står på linje nordover i x = 0 (meter øst/nord fra startstedet til båten), 7 m
 fra hverandre. Båten skal annenhver gang på østsiden og vestsiden av dem. Rød bøye skal
 ligge på babord side når båten passerer, grønn på styrbord.
 
-Fjerner også bøyerekka som følger med verdenen, slik at bare løypa står igjen.
+I sydney_regatta fjernes også bøyerekka som følger med verdenen, slik at bare løypa står igjen.
 """
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, TimerAction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-# Startstedet til båten, samme som SPAWN i asv.launch.py.
-ORIGIN = (-532.0, 162.0)
+# Startstedet til båten per verden, samme som SPAWN i asv.launch.py.
+ORIGIN = {'open_water': (0.0, 0.0), 'sydney_regatta': (-532.0, 162.0)}
 
 # (navn, farge, x, y) i meter fra startstedet. Båten kjører nordover og passerer
 # 1 og 3 på østsiden (bøyen er på babord) og 2 og 4 på vestsiden (bøyen er på styrbord).
@@ -55,17 +56,27 @@ SDF = """<sdf version="1.9"><model name="{name}">
 </model></sdf>"""
 
 
-def generate_launch_description():
-    nodes = [ExecuteProcess(output='screen', cmd=[
-        'gz', 'service', '-s', '/world/sydney_regatta/remove',
+def launch(context):
+    world = LaunchConfiguration('world').perform(context)
+    ox, oy = ORIGIN[world]
+    removals = [ExecuteProcess(output='screen', cmd=[
+        'gz', 'service', '-s', f'/world/{world}/remove',
         '--reqtype', 'gz.msgs.Entity', '--reptype', 'gz.msgs.Boolean', '--timeout', '5000',
-        '--req', f'name: "{name}" type: MODEL']) for name in WORLD_BUOYS]
+        '--req', f'name: "{name}" type: MODEL'])
+        for name in WORLD_BUOYS] if world == 'sydney_regatta' else []
     spawns = []
     for name, color, x, y in BUOYS:
         sdf = SDF.format(name=name, mesh=MESH, color=COLORS[color])
         spawns.append(Node(
             package='ros_gz_sim', executable='create', output='screen',
             arguments=['-name', name, '-string', sdf,
-                       '-x', str(ORIGIN[0] + x), '-y', str(ORIGIN[1] + y), '-z', '0']))
+                       '-x', str(ox + x), '-y', str(oy + y), '-z', '0']))
     # Venter litt så fjerningen er ferdig før løypa settes inn.
-    return LaunchDescription(nodes + [TimerAction(period=3.0, actions=spawns)])
+    return removals + [TimerAction(period=3.0, actions=spawns)]
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument('world', default_value='open_water', choices=list(ORIGIN)),
+        OpaqueFunction(function=launch),
+    ])
