@@ -140,7 +140,7 @@ ros2 launch sim_interface path.launch.py sim:=vrx_asv path:=path_demo
 Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båten er når noden starter. `radius` er hvor nær båten må komme et punkt, og `loop: true` kjører banen om igjen. Noden publiserer også båtens posisjon i meter på `/autonomy/position`. Banen tar ikke hensyn til land eller hindringer.
 
 ### Åpent hav
-Standardverdenen for vår båt er `open_water` (`asv_gazebo/worlds/open_water.sdf.xacro`): bare vannflaten fra VRX (6 × 6 km), bølger, sol og himmel, uten land. Båten starter i origo, og GPS-origo er stedet båten startet i `sydney_regatta`, så GPS-posisjonene er de samme i begge verdenene. Bølgehøyde, periode og retning står øverst i fila. `world:=sydney_regatta` gir VRX sin verden med land og bøyer.
+Standardverdenen for vår båt er `open_water` (`asv_gazebo/worlds/open_water.sdf.xacro`): bare en vannflate (6 × 6 km), bølger, sol og himmel, uten land. Båten starter i origo, og GPS-origo er stedet båten startet i `sydney_regatta`, så GPS-posisjonene er de samme i begge verdenene. Bølgene velges ved oppstart med `wave_height` (største utslag i meter, standard 0,11), `wave_period` (sekunder, standard 5) og `wave_direction` (radianer). Korte bølger (2–3 s) gir tydelig stamping og rulling for en så liten båt, mens lange bølger mest løfter den opp og ned. `world:=sydney_regatta` gir VRX sin verden med land og bøyer.
 
 ### Støy, vind, strøm og motortreghet
 Som standard er simulatoren «snill»: perfekte sensorer, ingen vind eller strøm, og motorer som reagerer øyeblikkelig. For å teste regulatorer under mer realistiske forhold kan hver av disse slås på:
@@ -151,6 +151,9 @@ SENSOR_NOISE=true WIND_SPEED=5 WIND_DIRECTION=90 CURRENT_SPEED=0.5 THRUST_TIME_C
 | Valg | Standard | Betyr |
 |---|---|---|
 | `sensor_noise` | `false` | støy og fast skjevhet på gyro og akselerometer, og støy på GPS-posisjonen. Tallene står i `asv_gazebo/models/asv/xacro/parameters.xacro`. Heading fra IMU-en er fortsatt eksakt, fordi Gazebo ikke har støy på orienteringen |
+| `wave_height` | `0.11` | største bølgeutslag i meter, bare i `open_water` |
+| `wave_period` | `5` | bølgeperiode i sekunder (3 s gir ca. 14 m bølgelengde, 5 s ca. 39 m) |
+| `wave_direction` | `0` | retningen bølgene går mot, i radianer |
 | `wind_speed` | `0` | middelvind i m/s (VRX sin vindplugin), bare i `open_water` |
 | `wind_direction` | `0` | retningen vinden blåser **mot**, i grader: 0 = mot øst, 90 = mot nord |
 | `wind_gust` | `0` | hvor mye vinden varierer (0 = jevn) |
@@ -224,7 +227,7 @@ HEADLESS=true docker compose up              # uten Gazebo-vindu
 | `SIM` | `vrx_asv` | `vrx_asv`, `vrx` eller `fast`, som i `sim.launch.py` |
 | `WORLD` | `open_water` | `open_water` (åpent hav) eller `sydney_regatta` (VRX med land), bare med `SIM=vrx_asv` |
 | `SCENARIO` | ingen | scenario fra `asv_gazebo/scenarios/`, f.eks. `slalom` |
-| `SENSOR_NOISE`, `WIND_SPEED`, `WIND_DIRECTION`, `WIND_GUST`, `CURRENT_SPEED`, `CURRENT_DIRECTION`, `THRUST_TIME_CONSTANT` | av | se «Støy, vind, strøm og motortreghet» |
+| `SENSOR_NOISE`, `WIND_SPEED`, `WIND_DIRECTION`, `WIND_GUST`, `CURRENT_SPEED`, `CURRENT_DIRECTION`, `WAVE_HEIGHT`, `WAVE_PERIOD`, `WAVE_DIRECTION`, `THRUST_TIME_CONSTANT` | av | se «Støy, vind, strøm og motortreghet» |
 | `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
 | `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
 | `PX4_TARGET` | `px4_sitl_proteus` | byggemålet i PX4 (control sitt SITL-bygg med modulene deres) |

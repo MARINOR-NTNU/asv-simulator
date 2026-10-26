@@ -12,6 +12,13 @@
 - Når Gazebo-vinduet åpnes, kan Ubuntu si at programmet ikke svarer. Trykk «Vent», for «Tving avslutning» avslutter hele simulatoren.
 - Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`. Da styrer både `stub_controller` og PX4 motorene, uten noen feilmelding.
 
+## Bølger og vann
+- VRX regner oppdriften med flatt vann rundt hvert oppdriftselement, med høyden i midten av elementet. Med én boks går båten bare opp og ned. Derfor er oppdriften et rutenett av bokser (`buoyancy_nx`, `buoyancy_ny` i `parameters.xacro`).
+- VRX sin `WaveVisual` sender bølgene til grafikkortet bare én gang, før parametrene på topicen kommer. Uten bølgeparametrene i `<wavefield><wave>` i verdensfila viser bildet VRX sine standardbølger (gain 1, periode 5 s), mens fysikken bruker de riktige.
+- VRX sin vannflate (`coast_waves`) har ca. 19 m mellom punktene. For en båt på 1,5 m tegnes bølgene rundt båten helt feil, og den ser ut som den er under vann selv om fysikken er riktig. `open_water` bruker derfor `ocean.obj` med 1 m mellom punktene innenfor ±100 m (`scripts/make_ocean_mesh.py`). Utenfor det er vannet grovere tegnet.
+- Vannshaderen finner teksturene sine som `materials/textures/` ved siden av fila vannet ble lest fra, så `asv.launch.py` lenker VRX sine teksturer inn ved siden av den genererte verdenen.
+- `wave_gain` i VRX er ikke bølgehøyden. Bruk `wave_height`, som regnes om med VRX sin formel (`asv_gazebo/waves.py`).
+
 ## Båtmodellen
 - Gazebo tolker horisontal GPS-støy (`navsat/position_sensing/horizontal`) som grader breddegrad og lengdegrad, ikke meter. 0,02 ga hopp på flere km. `sensors.xacro` regner om fra meter.
 - VRX sin vindplugin (`USVWind`) regner vindkraften per akse i verden, ikke i båtens akser, så koeffisientene er like for x og y.

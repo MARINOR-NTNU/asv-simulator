@@ -19,8 +19,17 @@
   <!-- Oppdrift: en boks med samme vannlinjeareal (ca. 0,58 m2) og oppdriftssenter (x = -0,19)
        som skroget. Bunnen er lagt slik at dypgangen stemmer for masser mellom 40 og 50 kg.
        Utenfor det spennet må boksen regnes ut på nytt. -->
-  <xacro:property name="buoyancy_pose" value="-0.19 0 -0.051"/>
-  <xacro:property name="buoyancy_size" value="1.12 0.52 0.342"/>
+  <xacro:property name="buoyancy_x" value="-0.19"/>
+  <xacro:property name="buoyancy_z" value="-0.051"/>
+  <xacro:property name="buoyancy_length" value="1.12"/>
+  <xacro:property name="buoyancy_width" value="0.52"/>
+  <xacro:property name="buoyancy_height" value="0.342"/>
+  <!-- Boksen deles i et rutenett (antall langs og på tvers). VRX regner vannet som flatt rundt hver
+       boks, med høyden i midten av boksen. Med én boks går båten bare opp og ned i bølgene. Med flere
+       kjenner den at vannet heller, og ruller og stamper. Samlet størrelse er den samme, så
+       dypgangen i stille vann endres ikke. -->
+  <xacro:property name="buoyancy_nx" value="4"/>
+  <xacro:property name="buoyancy_ny" value="2"/>
 
   <!-- Angrepspunktet for motstanden i vannet, 6 cm bak tyngdepunktet. ANSLAG: skrogets
        lateralplan har senter ved x = -0,05, men thrusterne og stagene akter virker som finner og

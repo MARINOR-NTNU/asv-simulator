@@ -31,6 +31,17 @@ foreach(src ${WORLD_XACRO})
 endforeach()
 add_custom_target(asv_worlds ALL DEPENDS ${WORLDS})
 
+# Vannflaten til open_water: tett rutenett rundt båten (se scripts/make_ocean_mesh.py).
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/ocean.obj
+  COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make_ocean_mesh.py
+          ${CMAKE_CURRENT_BINARY_DIR}/ocean.obj
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make_ocean_mesh.py
+  COMMENT "Lager vannflaten ocean.obj")
+add_custom_target(asv_ocean ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/ocean.obj)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/ocean.obj DESTINATION share/${PROJECT_NAME}/models/ocean/meshes)
+
 # asv_gazebo.scenario: scenarier og startsteder, brukt av launch-filene.
 ament_python_install_package(${PROJECT_NAME})
 

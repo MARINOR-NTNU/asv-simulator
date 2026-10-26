@@ -5,6 +5,7 @@
   scenario:=<navn>              ting som settes inn i verdenen, fra asv_gazebo/scenarios/ (sim:=vrx_asv)
   sensor_noise:=true            støy på IMU og GPS (sim:=vrx_asv)
   wind_speed:=5                 vind i m/s, med wind_direction og wind_gust (open_water)
+  wave_height:=0.3              største bølgeutslag i m, med wave_period og wave_direction (open_water)
   current_speed:=0.5            strøm i m/s, med current_direction (sim:=vrx_asv)
   thrust_time_constant:=0.3     treghet i motorene, sekunder
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
@@ -56,6 +57,9 @@ def generate_launch_description():
         DeclareLaunchArgument('sensor_noise', default_value='false', description='true = støy på IMU og GPS'),
         DeclareLaunchArgument('current_speed', default_value='0', description='m/s, strøm'),
         DeclareLaunchArgument('current_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
+        DeclareLaunchArgument('wave_height', default_value='0.11', description='m, største bølgeutslag (open_water)'),
+        DeclareLaunchArgument('wave_period', default_value='5', description='s (open_water)'),
+        DeclareLaunchArgument('wave_direction', default_value='0.0', description='rad (open_water)'),
         DeclareLaunchArgument('wind_speed', default_value='0', description='m/s, bare world:=open_water'),
         DeclareLaunchArgument('wind_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
         DeclareLaunchArgument('wind_gust', default_value='0', description='hvor mye vinden varierer, 0 = jevn'),
@@ -77,7 +81,8 @@ def generate_launch_description():
                 {'headless': arg('headless'), 'world': arg('world'), 'sensor_noise': arg('sensor_noise'),
                  'wind_speed': arg('wind_speed'), 'wind_direction': arg('wind_direction'),
                  'wind_gust': arg('wind_gust'), 'current_speed': arg('current_speed'),
-                 'current_direction': arg('current_direction')},
+                 'current_direction': arg('current_direction'), 'wave_height': arg('wave_height'),
+                 'wave_period': arg('wave_period'), 'wave_direction': arg('wave_direction')},
                 when('sim', 'vrx_asv')),
         include('asv_gazebo', 'scenario.launch.py',
                 {'scenario': arg('scenario'), 'world': arg('world')},

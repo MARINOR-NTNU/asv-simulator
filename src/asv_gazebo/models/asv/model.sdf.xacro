@@ -76,6 +76,23 @@
     <xacro:steerable_thruster side="right" y_sign="-1"/>
     <xacro:bow_thruster/>
 
+    <!-- Oppdrift: rutenettet av bokser fra parameters.xacro, én <buoyancy> per boks. -->
+    <xacro:macro name="buoyancy_grid" params="cells">
+      <xacro:if value="${len(cells) > 0}">
+        <xacro:property name="i" value="${cells[0][0]}"/>
+        <xacro:property name="j" value="${cells[0][1]}"/>
+        <xacro:property name="dx" value="${buoyancy_length / buoyancy_nx}"/>
+        <xacro:property name="dy" value="${buoyancy_width / buoyancy_ny}"/>
+        <buoyancy name="hull_buoyancy_${i}_${j}">
+          <link_name>base_link</link_name>
+          <pose>${buoyancy_x - buoyancy_length / 2 + dx * (i + 0.5)} ${-buoyancy_width / 2 + dy * (j + 0.5)} ${buoyancy_z} 0 0 0</pose>
+          <geometry>
+            <box><size>${dx} ${dy} ${buoyancy_height}</size></box>
+          </geometry>
+        </buoyancy>
+        <xacro:buoyancy_grid cells="${cells[1:]}"/>
+      </xacro:if>
+    </xacro:macro>
     <plugin name="vrx::PolyhedraBuoyancyDrag" filename="libPolyhedraBuoyancyDrag.so">
       <fluid_density>1000</fluid_density>
       <fluid_level>0.0</fluid_level>
@@ -83,13 +100,7 @@
            SimpleHydrodynamics under, der hver retning har sine egne tall. -->
       <linear_drag>0.0</linear_drag>
       <angular_drag>0.0</angular_drag>
-      <buoyancy name="hull_buoyancy">
-        <link_name>base_link</link_name>
-        <pose>${buoyancy_pose} 0 0 0</pose>
-        <geometry>
-          <box><size>${buoyancy_size}</size></box>
-        </geometry>
-      </buoyancy>
+      <xacro:buoyancy_grid cells="${[(i, j) for i in python.range(buoyancy_nx) for j in python.range(buoyancy_ny)]}"/>
       <wavefield>
         <topic>/vrx/wavefield/parameters</topic>
       </wavefield>

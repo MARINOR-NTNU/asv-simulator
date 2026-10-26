@@ -34,6 +34,7 @@ services:
         sensor_noise:=${SENSOR_NOISE:-false} wind_speed:=${WIND_SPEED:-0} wind_direction:=${WIND_DIRECTION:-0}
         wind_gust:=${WIND_GUST:-0} thrust_time_constant:=${THRUST_TIME_CONSTANT:-0.0}
         current_speed:=${CURRENT_SPEED:-0} current_direction:=${CURRENT_DIRECTION:-0}
+        wave_height:=${WAVE_HEIGHT:-0.11} wave_period:=${WAVE_PERIOD:-5} wave_direction:=${WAVE_DIRECTION:-0.0}
 
   px4:
     image: px4-sitl:proteus

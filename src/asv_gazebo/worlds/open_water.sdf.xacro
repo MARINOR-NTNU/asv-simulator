@@ -25,12 +25,18 @@
   <xacro:property name="latitude" value="-33.722768768890596"/>
   <xacro:property name="longitude" value="150.67399110173986"/>
 
-  <!-- Bølger (Gerstner-bølger i VRX). gain er omtrent bølgehøyden i meter, period i sekunder,
-       direction i radianer, steepness 0-1. Samme som sydney_regatta. -->
-  <xacro:property name="wave_gain" value="0.3"/>
-  <xacro:property name="wave_period" value="5"/>
-  <xacro:property name="wave_direction" value="0.0"/>
-  <xacro:property name="wave_steepness" value="0"/>
+  <!-- Bølger (Gerstner-bølger i VRX), valg ved oppstart. wave_gain er en skaleringsfaktor i VRX sin
+       bølgemodell (Pierson-Moskowitz), ikke høyden. asv.launch.py regner den ut fra wave_height
+       (største utslag i meter). wave_period i sekunder, wave_direction i radianer, wave_steepness
+       0-1. Standard er som sydney_regatta (gain 0,3, periode 5 s, største utslag ca. 0,11 m). -->
+  <xacro:arg name="wave_gain" default="0.3"/>
+  <xacro:arg name="wave_period" default="5"/>
+  <xacro:arg name="wave_direction" default="0.0"/>
+  <xacro:arg name="wave_steepness" default="0"/>
+  <xacro:property name="wave_gain" value="$(arg wave_gain)"/>
+  <xacro:property name="wave_period" value="$(arg wave_period)"/>
+  <xacro:property name="wave_direction" value="$(arg wave_direction)"/>
+  <xacro:property name="wave_steepness" value="$(arg wave_steepness)"/>
 
   <xacro:macro name="wave_param" params="key value">
     params {
@@ -85,12 +91,46 @@
       <direction>-0.5 0.1 -0.9</direction>
     </light>
 
-    <!-- Vannflaten fra VRX, 6 x 6 km. -->
-    <include>
-      <name>water</name>
-      <pose>0 0 0 0 0 0</pose>
-      <uri>coast_waves</uri>
-    </include>
+    <!-- Vannflaten, 6 x 6 km: VRX sin coast_waves, men skrevet inn her med bølgeparametrene i
+         <wavefield>. WaveVisual sender bølgene til grafikkortet bare én gang, før parametrene på
+         topicen kommer. Uten dette viser bildet VRX sine standardbølger (gain 1, periode 5 s), mens
+         fysikken bruker de riktige, og båten ser ut som den er under vann. -->
+    <model name="water">
+      <static>true</static>
+      <link name="link">
+        <visual name="wave_visual">
+          <!-- Eget mesh med 1 m mellom punktene rundt båten (scripts/make_ocean_mesh.py). VRX sitt
+               har ca. 19 m, og da tegnes bølgene rundt en så liten båt helt feil. -->
+          <geometry><mesh><uri>model://ocean/meshes/ocean.obj</uri></mesh></geometry>
+          <plugin filename="libWaveVisual.so" name="vrx::WaveVisual">
+            <shader>
+              <vertex>model://coast_waves/materials/programs/GerstnerWaves_vs_330.glsl</vertex>
+              <fragment>model://coast_waves/materials/programs/GerstnerWaves_fs_330.glsl</fragment>
+              <parameters>
+                <rescale>0.125</rescale>
+                <bumpScale>75 75</bumpScale>
+                <bumpSpeed>0.01 0.0</bumpSpeed>
+                <hdrMultiplier>0.4</hdrMultiplier>
+                <fresnelPower>5.0</fresnelPower>
+                <shallowColor>0 0.1 0.2 1.0</shallowColor>
+                <deepColor>0 0.05 0.2 1.0</deepColor>
+              </parameters>
+            </shader>
+            <wavefield>
+              <topic>/vrx/wavefield/parameters</topic>
+              <wave>
+                <model>PMS</model>
+                <period>${wave_period}</period>
+                <direction>${wave_direction}</direction>
+                <steepness>${wave_steepness}</steepness>
+                <gain>${wave_gain}</gain>
+              </wave>
+            </wavefield>
+          </plugin>
+          <visibility_flags>8</visibility_flags>
+        </visual>
+      </link>
+    </model>
 
     <!-- Bølgene. Oppdriften til båten og bøyene leser dem fra samme topic. -->
     <plugin filename="libPublisherPlugin.so" name="vrx::PublisherPlugin">
