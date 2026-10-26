@@ -33,6 +33,7 @@ setup(
             'px4_seapath_bridge = sim_interface.px4_seapath_bridge:main',
             'px4_hil_bridge = sim_interface.px4_hil_bridge:main',
             'px4_check = sim_interface.px4_check:main',
+            'control_test = sim_interface.control_test:main',
         ],
     },
 )

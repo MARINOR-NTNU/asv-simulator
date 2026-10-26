@@ -172,6 +172,24 @@ Målt 2026-10-26: med støy får farten fra GPS standardavvik 0,04 m/s (mot 0,00
 
 Strømmen ligger i vannmotstanden. `src/asv_hydrodynamics` er en kopi av VRX sin `SimpleHydrodynamics` (Apache 2.0) der motstanden regnes ut fra farten gjennom vannet (båtens fart minus strømmen) i stedet for over grunnen. Uten strøm er den lik VRX sin: 2 × 20 N gir 1,622 m/s med begge.
 
+### Teste regulatoren (`control_test`)
+`control_test` kjører en standardtest og måler hvordan regulatoren svarer. Den sender ønsket kurs og fart på `/autonomy/desired/...`, som autonomy ellers gjør, så den virker med alle regulatorer som følger kontrakten (`stub_controller` nå, control sin senere). Start simulatoren **uten** `autonomy`, så ingen andre sender ønskede verdier:
+```bash
+ros2 launch sim_interface sim.launch.py control:=stub wind_speed:=6 current_speed:=0.3
+ros2 run sim_interface control_test --ros-args -p test:=heading_step -p step:=90.0 -p label:=vind
+ros2 run sim_interface control_test --ros-args -p test:=speed_step -p start_speed:=0.5 -p speed:=1.0
+```
+| Test | Hva den gjør |
+|---|---|
+| `heading_step` | holder kursen båten har i `settle` sekunder (standard 15), så sprang på `step` grader, med fart `speed` |
+| `speed_step` | fart `start_speed`, så sprang til `speed`, med fast kurs |
+
+Etter spranget regnes stigetid (10–90 %), oversving, tid til stabil (innenfor 2° eller 5 % av spranget), stasjonært avvik (snitt de siste `tail` sekundene) og motorbruk (snitt av |thrust|). Resultatene lagres som `.csv` (alle målingene), `.json` (nøkkeltallene) og `.png` (graf) i `results/` i repoet (montert som `/root/results` i compose, og ignorert av git).
+
+Målt med `stub_controller` 2026-10-26, kurssprang 90°: i stille vann 17 % oversving, stabil etter 29,5 s og 0,05° stasjonært avvik. I vind 6 m/s og strøm 0,3 m/s stabil etter 39,3 s og 1,9° stasjonært avvik, fordi kursregulatoren i `stub_controller` ikke har integralledd. Fartssprang 0,5 → 1,0 m/s: 4 % oversving, stabil etter 2,1 s.
+
+Uten compose, legg til `-v $(pwd)/results:/root/results` på `docker run` for å få resultatene ut av containeren.
+
 ### Scenarier: bøyer og andre ting
 Et scenario er en kort yaml-fil i `asv_gazebo/scenarios/` med tingene som skal stå i verdenen. Posisjonene er meter øst og nord fra båtens startsted, så samme scenario virker i alle verdenene:
 ```yaml

@@ -19,6 +19,7 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - ./src:/root/vrx_ws/src/mysrc
+      - ./results:/root/results   # resultater fra control_test
     # Pakkene våre bygges ved hver oppstart, fordi containeren startes på nytt hver gang.
     command:
       - bash

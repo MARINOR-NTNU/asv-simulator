@@ -29,6 +29,9 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Fra 2026-10-26 ligger komponentene om bord i `asv_gazebo/models/asv/components.yaml` (masse, plassering, størrelse). Totalvekten er fast på 45 kg (`total_mass`), og skroget får det som er igjen. Før veide modellen 46,4 kg, fordi thrusterne kom i tillegg til skroget. Testet: 45,00 kg uten komponenter, og et batteri på 8 kg langt bak gir 3,7° akterlig trim. Ingen komponenter er lagt inn ennå.
 - Det finnes ingen CAD-modell ennå. Stabilitets- og hydrodynamikkanalyse er planlagt, og tallene derfra skal inn i modellen.
 
+## Testverktøy for regulatoren
+- `control_test` (2026-10-26): sprang i kurs eller fart, med stigetid, oversving, tid til stabil, stasjonært avvik og motorbruk, lagret som CSV, JSON og graf i `results/`. Testet med `stub_controller` i stille vann og i vind og strøm. Virker med control sin regulator når motorkjeden deres og en vei for ønskede verdier til PX4 (`CCommand`) er klar.
+
 ## Grensesnittet mot control og autonomy
 - Avtalt med control 2026-10-12: én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
 - Control sin kode kjører i PX4, så den kobles til via uXRCE-DDS. Det er klart på vår side, men ikke testet mot ekte PX4. Se [px4.md](px4.md).

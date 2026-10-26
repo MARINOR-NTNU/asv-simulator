@@ -3,3 +3,5 @@ build/
 install/
 log/
 .claude/
+results/*
+!results/.gitkeep
