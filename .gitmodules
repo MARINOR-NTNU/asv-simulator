@@ -1,5 +1,5 @@
 [submodule "px4/Flightcontroller-px4"]
 	path = px4/Flightcontroller-px4
 	url = https://github.com/MARINOR-NTNU/Flightcontroller-px4.git
-	branch = feature/control/sitl_proteus
+	branch = main
 	ignore = untracked

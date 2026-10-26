@@ -53,6 +53,12 @@ Control har laget `feature/control/sitl_proteus` med `boards/px4/sitl/proteus.px
 - `CMakeLists.txt` (linje 113) kopierer `custom.xml` inn i `src/modules/mavlink/mavlink/` når cmake kjører. På en ny kopi skjer det før PX4 henter MAVLink-submodulen, så hentingen feiler («already exists and is not an empty directory»). Compose henter derfor MAVLink-submodulen før `make`. Samme kopiering gjør at submodulen ser endret ut etter bygget, så `.gitmodules` har `ignore = untracked`.
 - Mulig løsning på RC-problemet uten å endre koden deres: `px4_hil_bridge` kan sende RC-verdier over MAVLink (som en RC-sender). Ikke sjekket om `simulator_mavlink` gjør dem om til `input_rc`.
 
+## `main` hos control (testet 2026-10-26, kl. 15)
+Control har slått sammen `sitl_proteus` inn i `main` (pull request #4), og `rcPublisher` regner nå om RC fra 1000–2000 µs til -100..100 for alle fire kanalene. Submodulen følger `main` (`8420d758a2`). Med virtuell RC og modulene startet for hånd, og broen med standardinnstillinger (ingen midlertidig omregning):
+- 1700 µs på begge akterthrusterne gir 40 % i `motor_output`, 20 N og 1,62 m/s. Bare babord motor svinger båten med klokka. Baugen på 1700 µs gir -10 N (baugen mot styrbord). Kraft og fortegn stemmer.
+- **Vinkelen kommer også som -100..100, ikke radianer som avtalt.** RC 1750 gir 50 i `port_side_angle`, som broen sender videre som 50 rad (begrenset til 90° i `thruster_adapter`). Enten sender control radianer, eller så settes `angle_scale` i `config/px4_bridge.yaml` til π/2/100 = 0,0157 (100 = 90° mot babord). Ikke avklart.
+- Fortsatt mangler: modulene startes ikke i SITL, og `custom.xml`-feilen ved ny kopi er ikke rettet.
+
 ## Hele veien fra PX4 til motorene (testet 2026-10-26)
 Med `sitl_proteus` og Gazebo, uten å endre koden til control:
 - `switch_motor_output` og `rcPublisher` startes for hånd (`../bin/px4-switch_motor_output start`, `../bin/px4-rcPublisher start` i `build/px4_sitl_proteus/rootfs`), fordi SITL-bygget ikke starter dem.
@@ -133,6 +139,6 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10
 ## Venter på svar fra control
 - At `switch_motor_output` (og `rcPublisher`, `motor_writer`) startes i SITL. De er bygget inn i `px4_sitl_proteus`, men startes ikke.
 - Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren (`rc_channels` i `px4_hil_bridge` virker).
-- At `switch_motor_output` gjør RC-verdiene (µs) om til -100..100 % og radianer før de sendes som `MotorOutput`.
+- Om vinkelen skal være radianer (som avtalt) eller -100..100 (som `rcPublisher` sender nå). Thrust er regnet om riktig.
 - At kopieringen av `custom.xml` i `CMakeLists.txt` skjer etter at MAVLink-submodulen er hentet, så en ny kopi bygger uten triks.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.

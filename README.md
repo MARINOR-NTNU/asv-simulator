@@ -241,7 +241,7 @@ PX4 og simulatoren kjører i hver sin container, begge startet fra dette repoet.
 ```bash
 git submodule update --init px4/Flightcontroller-px4
 ```
-Ikke bruk `--recursive`. PX4 henter selv de av sine egne submoduler bygget trenger. Submodulen peker på én commit på grenen `feature/control/sitl_proteus`, der control har laget SITL-bygget for simulering (`px4_sitl_proteus`). Når den er merget inn i `main`, bytter vi til `main`. Nyeste commit på grenen hentes med `git submodule update --remote px4/Flightcontroller-px4`, men vi flytter bare pekeren til en commit som har bestått `px4_check`. Etter at pekeren er flyttet, bygger PX4 på nytt ved neste start.
+Ikke bruk `--recursive`. PX4 henter selv de av sine egne submoduler bygget trenger. Submodulen peker på én commit på `main` hos control, der SITL-bygget for simulering (`px4_sitl_proteus`) ligger fra 2026-10-26. Nyeste commit på grenen hentes med `git submodule update --remote px4/Flightcontroller-px4`, men vi flytter bare pekeren til en commit som har bestått `px4_check`. Etter at pekeren er flyttet, bygger PX4 på nytt ved neste start.
 
 **2. Bygg imagene** (VRX-imaget som under «Bygg», PX4-imaget tar noen minutter):
 ```bash
