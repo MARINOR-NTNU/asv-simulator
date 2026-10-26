@@ -14,6 +14,7 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Partneren lager en egen 2D-simulator (ikke pushet ennå). Den første 2D-simulatoren (`asv_fastsim`) ble fjernet 2026-10-26 og finnes i git-historikken (commit `ce24d1e`).
 
 ## Verdenen
+- Fra 2026-10-26 kan sensorstøy (`sensor_noise`), vind (`wind_speed`, `wind_direction`, `wind_gust`) og treghet i motorene (`thrust_time_constant`) slås på for å teste regulatorer mer realistisk. Modellen og `open_water` lages fra xacro ved oppstart med disse valgene. Testet i Gazebo. Strøm mangler, fordi VRX sin vannmotstand ikke støtter det.
 - Fra 2026-10-26 er standard `open_water`: åpent hav (6 × 6 km) uten land, med bølger, i `asv_gazebo/worlds/open_water.sdf.xacro`. GPS-origo er startstedet fra `sydney_regatta`, så GPS, kompasset til PX4 og banene med fast origin er uendret. Testet med slalåmløypa og `path_slalom` (6 av 7 punkter på 75 s). `world:=sydney_regatta` virker fortsatt.
 - Fra 2026-10-26 ligger testoppsett i scenariofiler (`asv_gazebo/scenarios/*.yaml`) med én funksjon per type ting i `asv_gazebo/scenario.py`. `slalom.launch.py` er erstattet av `scenario.launch.py` og `sim.launch.py scenario:=slalom`. Testet i begge verdenene. Neste type er dokk, når docking skal testes.
 

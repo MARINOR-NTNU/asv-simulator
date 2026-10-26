@@ -80,4 +80,14 @@
   <xacro:property name="gps_rate" value="20"/>
   <xacro:property name="gps_height" value="0.15"/>
 
+  <!-- Sensorstøy, brukt når modellen lages med sensor_noise:=true (standardavvik, hvit støy, og en
+       fast skjevhet som trekkes én gang per kjøring). ANSLAG for en MEMS-IMU og en GPS med
+       korreksjoner. Gazebo har ingen støy på IMU-ens orientering, så heading er fortsatt eksakt. -->
+  <xacro:property name="gyro_noise" value="0.002"/>        <!-- rad/s -->
+  <xacro:property name="gyro_bias" value="0.0005"/>        <!-- rad/s -->
+  <xacro:property name="accel_noise" value="0.02"/>        <!-- m/s2 -->
+  <xacro:property name="accel_bias" value="0.01"/>         <!-- m/s2 -->
+  <xacro:property name="gps_horizontal_noise" value="0.02"/>  <!-- m -->
+  <xacro:property name="gps_vertical_noise" value="0.04"/>    <!-- m -->
+
 </sdf>

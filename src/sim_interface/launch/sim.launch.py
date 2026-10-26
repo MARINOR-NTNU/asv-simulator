@@ -3,6 +3,9 @@
   sim:=vrx_asv | vrx            vår båt (standard) eller WAM-V
   world:=open_water | sydney_regatta   verdenen til vår båt i Gazebo (sim:=vrx_asv)
   scenario:=<navn>              ting som settes inn i verdenen, fra asv_gazebo/scenarios/ (sim:=vrx_asv)
+  sensor_noise:=true            støy på IMU og GPS (sim:=vrx_asv)
+  wind_speed:=5                 vind i m/s, med wind_direction og wind_gust (open_water)
+  thrust_time_constant:=0.3     treghet i motorene, sekunder
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
   autonomy:=none | fake | path  ingen, fake_heading, eller waypoint_follower
 
@@ -49,6 +52,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'scenario', default_value='none',
             description='sim:=vrx_asv: scenario fra asv_gazebo/scenarios/, f.eks. slalom. none = ingen'),
+        DeclareLaunchArgument('sensor_noise', default_value='false', description='true = støy på IMU og GPS'),
+        DeclareLaunchArgument('wind_speed', default_value='0', description='m/s, bare world:=open_water'),
+        DeclareLaunchArgument('wind_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
+        DeclareLaunchArgument('wind_gust', default_value='0', description='hvor mye vinden varierer, 0 = jevn'),
+        DeclareLaunchArgument('thrust_time_constant', default_value='',
+                              description='sekunder, treghet i motorene. Tom = verdien i config'),
         DeclareLaunchArgument('control', default_value='none', choices=['none', 'stub', 'px4']),
         DeclareLaunchArgument('autonomy', default_value='none', choices=['none', 'fake', 'path']),
         DeclareLaunchArgument('heading', default_value='0.0', description='autonomy:=fake, radianer ENU'),
@@ -61,7 +70,10 @@ def generate_launch_description():
         DeclareLaunchArgument('agent_port', default_value='8888', description='control:=px4'),
 
         # Simulatoren
-        include('asv_gazebo', 'asv.launch.py', {'headless': arg('headless'), 'world': arg('world')},
+        include('asv_gazebo', 'asv.launch.py',
+                {'headless': arg('headless'), 'world': arg('world'), 'sensor_noise': arg('sensor_noise'),
+                 'wind_speed': arg('wind_speed'), 'wind_direction': arg('wind_direction'),
+                 'wind_gust': arg('wind_gust')},
                 when('sim', 'vrx_asv')),
         include('asv_gazebo', 'scenario.launch.py',
                 {'scenario': arg('scenario'), 'world': arg('world')},
@@ -71,7 +83,8 @@ def generate_launch_description():
                 {'world': 'sydney_regatta', 'headless': arg('headless')}, when('sim', 'vrx')),
 
         # Grensesnittet (thruster_adapter, sensor_relay, heading_node, speed_node)
-        include('sim_interface', 'sim_interface.launch.py', {'sim': arg('sim')}),
+        include('sim_interface', 'sim_interface.launch.py',
+                {'sim': arg('sim'), 'thrust_time_constant': arg('thrust_time_constant')}),
 
         # Autonomy
         Node(package='sim_interface', executable='fake_heading', condition=when('autonomy', 'fake'),

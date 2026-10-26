@@ -1,9 +1,24 @@
 <?xml version="1.0"?>
 <!--
-  Sensorene som makroer. De settes inn i base_link i model.sdf.xacro. Nye sensorer (lidar,
-  kamera) legges til her og trenger en bro i asv.launch.py og en linje i sensor_relay sin config.
+  Sensorene som makroer. De settes inn i base_link i model.sdf.xacro. Med sensor_noise:=true får
+  IMU og GPS støy (tallene i parameters.xacro). Nye sensorer (lidar, kamera) legges til her og
+  trenger en bro i asv.launch.py og en linje i sensor_relay sin config.
 -->
 <sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Gaussisk støy med fast skjevhet (bias) på én akse. -->
+  <xacro:macro name="noise" params="stddev bias">
+    <noise type="gaussian">
+      <mean>0</mean><stddev>${stddev}</stddev>
+      <bias_mean>0</bias_mean><bias_stddev>${bias}</bias_stddev>
+    </noise>
+  </xacro:macro>
+
+  <xacro:macro name="xyz_noise" params="stddev bias">
+    <x><xacro:noise stddev="${stddev}" bias="${bias}"/></x>
+    <y><xacro:noise stddev="${stddev}" bias="${bias}"/></y>
+    <z><xacro:noise stddev="${stddev}" bias="${bias}"/></z>
+  </xacro:macro>
 
   <xacro:macro name="imu">
     <sensor name="imu" type="imu">
@@ -14,6 +29,10 @@
         <orientation_reference_frame>
           <localization>ENU</localization>
         </orientation_reference_frame>
+        <xacro:if value="${sensor_noise}">
+          <angular_velocity><xacro:xyz_noise stddev="${gyro_noise}" bias="${gyro_bias}"/></angular_velocity>
+          <linear_acceleration><xacro:xyz_noise stddev="${accel_noise}" bias="${accel_bias}"/></linear_acceleration>
+        </xacro:if>
       </imu>
     </sensor>
   </xacro:macro>
@@ -24,6 +43,15 @@
       <always_on>1</always_on>
       <update_rate>${gps_rate}</update_rate>
       <topic>/asv/sensors/gps</topic>
+      <xacro:if value="${sensor_noise}">
+        <navsat>
+          <position_sensing>
+            <!-- Gazebo tolker horisontal støy som grader breddegrad/lengdegrad, ikke meter. -->
+            <horizontal><xacro:noise stddev="${gps_horizontal_noise / 111320.0}" bias="0"/></horizontal>
+            <vertical><xacro:noise stddev="${gps_vertical_noise}" bias="0"/></vertical>
+          </position_sensing>
+        </navsat>
+      </xacro:if>
     </sensor>
   </xacro:macro>
 

@@ -11,6 +11,7 @@ thruster_adapter:
     thrust_scale: 1.0
     angle_scale: 1.0
     timeout: 0.5
+    thrust_time_constant: 0.0   # sekunder, treghet i motorene (0 = øyeblikkelig). ANSLAG for våre: ca. 0,2-0,5
 
 stub_controller:
   ros__parameters:

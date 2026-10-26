@@ -13,6 +13,8 @@
 - Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`. Da styrer både `stub_controller` og PX4 motorene, uten noen feilmelding.
 
 ## Båtmodellen
+- Gazebo tolker horisontal GPS-støy (`navsat/position_sensing/horizontal`) som grader breddegrad og lengdegrad, ikke meter. 0,02 ga hopp på flere km. `sensors.xacro` regner om fra meter.
+- VRX sin vindplugin (`USVWind`) regner vindkraften per akse i verden, ikke i båtens akser, så koeffisientene er like for x og y.
 - Motstanden i vannet angriper i `hydro_link`. Flyttes det punktet foran tyngdepunktet, blir båten retningsustabil og spinner rundt i høy fart.
 - `linear_drag` og `angular_drag` i oppdriftsmodulen er lik i alle retninger og skal stå på 0. All motstand ligger i `SimpleHydrodynamics`.
 - Et ledd som kjøres helt i endestopp, låser seg. Derfor er leddgrensen for thrusterne (±1,75) videre enn det `thruster_adapter` tillater (±1,5708).

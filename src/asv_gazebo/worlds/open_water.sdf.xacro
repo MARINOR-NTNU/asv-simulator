@@ -8,6 +8,19 @@
 -->
 <sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+  <!-- Valg når verdenen lages (asv.launch.py sender dem videre fra sim.launch.py).
+       wind_speed: middelvind i m/s, 0 = ingen vind. wind_direction: retningen vinden blåser mot,
+       i grader (0 = mot øst, 90 = mot nord). wind_gust: hvor mye vinden varierer (0 = jevn). -->
+  <xacro:arg name="wind_speed" default="0"/>
+  <xacro:arg name="wind_direction" default="0"/>
+  <xacro:arg name="wind_gust" default="0"/>
+  <xacro:property name="wind_speed" value="$(arg wind_speed)"/>
+
+  <!-- Vindkraften på båten (VRX USVWind): F = koeffisient * relativ vindfart * |relativ vindfart|,
+       per akse i verden. ANSLAG: 0,5 * lufttetthet * Cd * areal over vannet (ca. 1,5 x 0,27 m
+       fra siden), Cd ca. 1. -->
+  <xacro:property name="wind_coeff" value="0.15 0.15 0.05"/>
+
   <!-- GPS-posisjonen til origo -->
   <xacro:property name="latitude" value="-33.722768768890596"/>
   <xacro:property name="longitude" value="150.67399110173986"/>
@@ -88,6 +101,24 @@
         <xacro:wave_param key="steepness" value="${wave_steepness}"/>
       </message>
     </plugin>
+
+    <xacro:if value="${float(wind_speed) > 0}">
+      <plugin filename="libUSVWind.so" name="vrx::USVWind">
+        <wind_obj>
+          <name>asv</name>
+          <link_name>base_link</link_name>
+          <coeff_vector>${wind_coeff}</coeff_vector>
+        </wind_obj>
+        <wind_direction>$(arg wind_direction)</wind_direction>
+        <wind_mean_velocity>${wind_speed}</wind_mean_velocity>
+        <var_wind_gain_constants>$(arg wind_gust)</var_wind_gain_constants>
+        <var_wind_time_constants>2</var_wind_time_constants>
+        <random_seed>10</random_seed>
+        <update_rate>10</update_rate>
+        <topic_wind_speed>/vrx/debug/wind/speed</topic_wind_speed>
+        <topic_wind_direction>/vrx/debug/wind/direction</topic_wind_direction>
+      </plugin>
+    </xacro:if>
 
   </world>
 </sdf>

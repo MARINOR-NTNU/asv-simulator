@@ -1,5 +1,6 @@
 """Oversetter /control/thruster/... til simulatorens egne thruster-topics."""
 import rclpy
+from rcl_interfaces.msg import SetParametersResult
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from std_msgs.msg import Float64
@@ -26,11 +27,17 @@ class ThrusterAdapter(Node):
         self.angle_scale = self.declare_parameter('angle_scale', 1.0).value
         self.timeout = self.declare_parameter('timeout', 0.5).value
         rate = self.declare_parameter('rate', 20.0).value
+        self.period = 1.0 / rate
+        # Treghet i motorene: tid (s) til kraften har nådd ca. 63 % av en ny kommando. 0 = øyeblikkelig.
+        # Kan endres mens noden kjører: ros2 param set /thruster_adapter thrust_time_constant 0.3
+        self.thrust_time_constant = self.declare_parameter('thrust_time_constant', 0.0).value
+        self.add_on_set_parameters_callback(self.on_parameters)
 
         if not thrust_topic:
             raise RuntimeError('thrust_topic er ikke satt. Start med config/<sim>.yaml.')
 
         self.thrust = dict.fromkeys(self.thrusters, 0.0)
+        self.applied = dict.fromkeys(self.thrusters, 0.0)  # kraften motoren faktisk gir (med treghet)
         self.angle = dict.fromkeys(self.thrusters, 0.0)
         # Hver motor har sin egen timeout, så en gammel verdi ikke blir stående.
         self.last_cmd = dict.fromkeys(self.thrusters, None)
@@ -50,7 +57,13 @@ class ThrusterAdapter(Node):
                     Float64, f'/control/thruster/{side}/angle',
                     lambda msg, s=side: self.on_angle(s, msg), 10)
 
-        self.create_timer(1.0 / rate, self.publish)
+        self.create_timer(self.period, self.publish)
+
+    def on_parameters(self, params):
+        for param in params:
+            if param.name == 'thrust_time_constant':
+                self.thrust_time_constant = max(0.0, param.value)
+        return SetParametersResult(successful=True)
 
     def on_thrust(self, side, msg):
         self.thrust[side] = clamp(msg.data, self.max_thrust)
@@ -69,8 +82,11 @@ class ThrusterAdapter(Node):
                     f'{side}: ingen thrust-kommandoer, setter thrust til 0.' if timed_out
                     else f'{side}: mottar thrust-kommandoer.')
                 self.timed_out[side] = timed_out
-            thrust = 0.0 if timed_out else self.thrust[side]
-            self.thrust_pubs[side].publish(Float64(data=thrust * self.thrust_scale))
+            target = 0.0 if timed_out else self.thrust[side]
+            # Førsteordens treghet mot målet. Med tidskonstant 0 blir alpha 1, altså ingen treghet.
+            alpha = self.period / (self.thrust_time_constant + self.period)
+            self.applied[side] += alpha * (target - self.applied[side])
+            self.thrust_pubs[side].publish(Float64(data=self.applied[side] * self.thrust_scale))
             if side in self.angle_pubs:
                 self.angle_pubs[side].publish(
                     Float64(data=self.angle[side] * self.angle_scale))

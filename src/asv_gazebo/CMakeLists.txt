@@ -5,7 +5,8 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_program(XACRO xacro REQUIRED)
 
-# model.sdf lages fra model.sdf.xacro og filene i xacro/. Gazebo leser den installerte model.sdf.
+# model.sdf lages fra model.sdf.xacro og filene i xacro/ som standardversjon (uten valg). Ved oppstart
+# lager asv.launch.py modellen på nytt med valgene som er gitt.
 set(MODEL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/models/asv)
 file(GLOB MODEL_XACRO ${MODEL_DIR}/model.sdf.xacro ${MODEL_DIR}/xacro/*.xacro)
 add_custom_command(
@@ -33,8 +34,10 @@ add_custom_target(asv_worlds ALL DEPENDS ${WORLDS})
 # asv_gazebo.scenario: scenarier og startsteder, brukt av launch-filene.
 ament_python_install_package(${PROJECT_NAME})
 
-install(DIRECTORY models launch scenarios DESTINATION share/${PROJECT_NAME}
-  PATTERN "*.xacro" EXCLUDE PATTERN "xacro" EXCLUDE)
+# xacro-filene installeres også, fordi asv.launch.py lager modellen og open_water med valgene som
+# gis ved oppstart (sensorstøy, vind). De genererte filene under er standardversjonene.
+install(DIRECTORY models launch scenarios DESTINATION share/${PROJECT_NAME})
+install(FILES ${WORLD_XACRO} DESTINATION share/${PROJECT_NAME}/worlds)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/model.sdf DESTINATION share/${PROJECT_NAME}/models/asv)
 install(FILES ${WORLDS} DESTINATION share/${PROJECT_NAME}/worlds)
 

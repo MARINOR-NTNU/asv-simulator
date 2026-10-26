@@ -11,6 +11,10 @@
   beskrevet med tall og enkle former.
 -->
 <sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Valg når modellen lages (asv.launch.py sender dem videre fra sim.launch.py). -->
+  <xacro:arg name="sensor_noise" default="false"/>
+  <xacro:property name="sensor_noise" value="$(arg sensor_noise)"/>
+
   <xacro:include filename="xacro/parameters.xacro"/>
   <xacro:include filename="xacro/thrusters.xacro"/>
   <xacro:include filename="xacro/sensors.xacro"/>
