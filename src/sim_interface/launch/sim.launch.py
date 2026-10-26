@@ -2,6 +2,7 @@
 
   sim:=vrx_asv | vrx | fast     vår båt (standard), WAM-V, eller vår båt i den raske 2D-simulatoren
   world:=open_water | sydney_regatta   verdenen til vår båt i Gazebo (sim:=vrx_asv)
+  scenario:=<navn>              ting som settes inn i verdenen, fra asv_gazebo/scenarios/ (sim:=vrx_asv)
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
   autonomy:=none | fake | path  ingen, fake_heading, eller waypoint_follower
 
@@ -9,9 +10,9 @@ control er ett valg, så stub_controller og PX4 kan ikke styre motorene samtidig
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
-from launch.conditions import LaunchConfigurationEquals
+from launch.conditions import IfCondition, LaunchConfigurationEquals
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -48,6 +49,9 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'world', default_value='open_water', choices=['open_water', 'sydney_regatta'],
             description='sim:=vrx_asv: åpent hav uten land, eller VRX sin sydney_regatta'),
+        DeclareLaunchArgument(
+            'scenario', default_value='',
+            description='sim:=vrx_asv: scenario fra asv_gazebo/scenarios/, f.eks. slalom. Tom = ingen'),
         DeclareLaunchArgument('control', default_value='none', choices=['none', 'stub', 'px4']),
         DeclareLaunchArgument('autonomy', default_value='none', choices=['none', 'fake', 'path']),
         DeclareLaunchArgument('heading', default_value='0.0', description='autonomy:=fake, radianer ENU'),
@@ -62,6 +66,10 @@ def generate_launch_description():
         # Simulatoren
         include('asv_gazebo', 'asv.launch.py', {'headless': arg('headless'), 'world': arg('world')},
                 when('sim', 'vrx_asv')),
+        include('asv_gazebo', 'scenario.launch.py',
+                {'scenario': arg('scenario'), 'world': arg('world')},
+                IfCondition(PythonExpression(
+                    ["'", arg('scenario'), "' != '' and '", arg('sim'), "' == 'vrx_asv'"]))),
         include('vrx_gz', 'competition.launch.py',
                 {'world': 'sydney_regatta', 'headless': arg('headless')}, when('sim', 'vrx')),
         # Den raske simulatoren er klokka selv, så den kjører ikke med use_sim_time.

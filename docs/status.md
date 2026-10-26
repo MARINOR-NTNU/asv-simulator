@@ -18,7 +18,7 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 
 ## Verdenen
 - Fra 2026-10-26 er standard `open_water`: åpent hav (6 × 6 km) uten land, med bølger, i `asv_gazebo/worlds/open_water.sdf.xacro`. GPS-origo er startstedet fra `sydney_regatta`, så GPS, kompasset til PX4 og banene med fast origin er uendret. Testet med slalåmløypa og `path_slalom` (6 av 7 punkter på 75 s). `world:=sydney_regatta` virker fortsatt.
-- Neste: testoppsett (bøyer, dokk) i scenariofiler med én funksjon per type, i stedet for å skrive dem inn i launch-filer.
+- Fra 2026-10-26 ligger testoppsett i scenariofiler (`asv_gazebo/scenarios/*.yaml`) med én funksjon per type ting i `asv_gazebo/scenario.py`. `slalom.launch.py` er erstattet av `scenario.launch.py` og `sim.launch.py scenario:=slalom`. Testet i begge verdenene. Neste type er dokk, når docking skal testes.
 
 ## Vår egen båt (`asv_gazebo`)
 - Testet i VRX 2026-10-12: den flyter på riktig høyde, holder kursen rett frem ved alle hastigheter, er symmetrisk mot babord og styrbord, og følger en bane med `sim:=vrx_asv`.

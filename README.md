@@ -100,6 +100,7 @@ ros2 launch sim_interface sim.launch.py sim:=fast real_time_factor:=20 control:=
 | `control` | `none` (standard), `stub` (`stub_controller`) eller `px4` (broene og agenten) |
 | `autonomy` | `none` (standard), `fake` (`fake_heading`, med `heading`, `speed` og `sweep_rate`) eller `path` (`waypoint_follower`, med `path`) |
 | `world` | bare `sim:=vrx_asv`: `open_water` (åpent hav uten land, standard) eller `sydney_regatta` (VRX sin verden med land og bøyer) |
+| `scenario` | bare `sim:=vrx_asv`: ting som settes inn i verdenen, f.eks. `slalom` (se «Scenarier») |
 | `headless` | `true` = uten Gazebo-vindu |
 
 `control` er ett valg, så `stub_controller` og PX4 kan ikke styre motorene samtidig. Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`, for de starter også `stub_controller`, og da kjemper to om motorene uten noen feilmelding.
@@ -151,13 +152,26 @@ Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båt
 ### Åpent hav
 Standardverdenen for vår båt er `open_water` (`asv_gazebo/worlds/open_water.sdf.xacro`): bare vannflaten fra VRX (6 × 6 km), bølger, sol og himmel, uten land. Båten starter i origo, og GPS-origo er stedet båten startet i `sydney_regatta`, så GPS-posisjonene er de samme i begge verdenene. Bølgehøyde, periode og retning står øverst i fila. `world:=sydney_regatta` gir VRX sin verden med land og bøyer.
 
-### Slalåmløype
-`asv_gazebo/launch/slalom.launch.py` legger ut fire bøyer på linje nordover fra startstedet, 7 m fra hverandre. I `sydney_regatta` fjerner den først bøyerekka som følger med verdenen. Start den med samme `world` som simulatoren. `config/path_slalom.yaml` er en bane som kjører sikksakk mellom dem (3 m på hver side), og så tilbake sørover øst for løypa. Start den mens simulatoren kjører:
-```bash
-ros2 launch asv_gazebo slalom.launch.py                 # world:=sydney_regatta hvis simulatoren kjører der
-ros2 launch sim_interface path.launch.py sim:=vrx_asv path:=path_slalom
+### Scenarier: bøyer og andre ting
+Et scenario er en kort yaml-fil i `asv_gazebo/scenarios/` med tingene som skal stå i verdenen. Posisjonene er meter øst og nord fra båtens startsted, så samme scenario virker i alle verdenene:
+```yaml
+objects:
+  - {type: buoy, name: slalom1_red, color: red, x: 0.0, y: 4.0}
+  - {type: buoy, name: slalom2_green, color: green, x: 0.0, y: 11.0}
 ```
-Banen har et fast nullpunkt (`origin`, breddegrad og lengdegrad for startstedet), så den treffer løypa selv om båten har drevet før start. Uten `origin` regnes punktene fra der båten er når noden starter.
+Start det sammen med simulatoren, eller i en verden som allerede kjører:
+```bash
+ros2 launch sim_interface sim.launch.py scenario:=slalom control:=stub autonomy:=path path:=path_slalom
+ros2 launch asv_gazebo scenario.launch.py scenario:=slalom          # world:=sydney_regatta hvis simulatoren kjører der
+SCENARIO=slalom docker compose up
+```
+`scenario` kan også være en sti til en egen yaml-fil. I `sydney_regatta` fjernes først bøyerekka som følger med verdenen.
+
+- **Nytt scenario:** lag en ny fil i `scenarios/` og bygg `asv_gazebo` på nytt.
+- **Ny type ting:** lag en funksjon i `asv_gazebo/asv_gazebo/scenario.py` som returnerer SDF-en, og legg den i `TYPES`. I dag finnes `buoy` (markørbøye, farge `red`, `green`, `yellow`, `white` eller `black`).
+- Startstedet til båten i hver verden står også i `scenario.py` (`WORLDS`).
+
+`scenarios/slalom.yaml` er fire bøyer på linje nordover fra startstedet, 7 m fra hverandre. `config/path_slalom.yaml` er en bane som kjører sikksakk mellom dem (3 m på hver side), og så tilbake sørover øst for løypa. Banen har et fast nullpunkt (`origin`, breddegrad og lengdegrad for startstedet), så den treffer løypa selv om båten har drevet før start. Uten `origin` regnes punktene fra der båten er når noden starter.
 
 ### Bytte simulator
 `sim:=` velger hvilken fil i `config/` som lastes: `vrx` (WAM-V), `vrx_asv` (vår båt) eller `unity`. Unity-filen er en mal med plassholdere og er ikke testet. En ny simulator trenger bare en ny yaml-fil, så lenge den publiserer `/clock` og standard ROS-meldinger i ROS-konvensjon (ENU, x frem, z opp).
@@ -199,6 +213,7 @@ SIM=fast HEADLESS=true docker compose up     # 2D-simulatoren i stedet, uten vin
 |---|---|---|
 | `SIM` | `vrx_asv` | `vrx_asv`, `vrx` eller `fast`, som i `sim.launch.py` |
 | `WORLD` | `open_water` | `open_water` (åpent hav) eller `sydney_regatta` (VRX med land), bare med `SIM=vrx_asv` |
+| `SCENARIO` | ingen | scenario fra `asv_gazebo/scenarios/`, f.eks. `slalom` |
 | `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
 | `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
 | `PX4_TARGET` | `px4_sitl_proteus` | byggemålet i PX4 (control sitt SITL-bygg med modulene deres) |

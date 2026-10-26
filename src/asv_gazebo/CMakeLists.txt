@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(asv_gazebo)
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_program(XACRO xacro REQUIRED)
 
 # model.sdf lages fra model.sdf.xacro og filene i xacro/. Gazebo og asv_fastsim leser den
@@ -30,7 +31,10 @@ foreach(src ${WORLD_XACRO})
 endforeach()
 add_custom_target(asv_worlds ALL DEPENDS ${WORLDS})
 
-install(DIRECTORY models launch DESTINATION share/${PROJECT_NAME}
+# asv_gazebo.scenario: scenarier og startsteder, brukt av launch-filene.
+ament_python_install_package(${PROJECT_NAME})
+
+install(DIRECTORY models launch scenarios DESTINATION share/${PROJECT_NAME}
   PATTERN "*.xacro" EXCLUDE PATTERN "xacro" EXCLUDE)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/model.sdf DESTINATION share/${PROJECT_NAME}/models/asv)
 install(FILES ${WORLDS} DESTINATION share/${PROJECT_NAME}/worlds)

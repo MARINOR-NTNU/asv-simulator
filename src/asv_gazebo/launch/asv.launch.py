@@ -8,12 +8,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import vrx_gz.launch
 
-# Startsted per verden. z er løftet slik at vannlinjen havner i z = 0. I sydney_regatta er det
-# samme sted som WAM-V, og open_water har GPS-origo der, så båten starter på samme GPS-posisjon.
-SPAWN = {
-    'open_water': {'x': '0', 'y': '0', 'z': '0.145', 'Y': '1.0'},
-    'sydney_regatta': {'x': '-532', 'y': '162', 'z': '0.145', 'Y': '1.0'},
-}
+from asv_gazebo.scenario import WORLDS
 
 BRIDGES = [
     '/asv/thrusters/left/thrust@std_msgs/msg/Float64]ignition.msgs.Double',
@@ -37,8 +32,10 @@ def launch(context, *args, **kwargs):
     processes = vrx_gz.launch.simulation(world, headless)
     processes.extend(vrx_gz.launch.competition_bridges(world))
     spawn_args = ['-name', 'asv', '-file', model]
-    for key, value in SPAWN[world].items():
-        spawn_args.extend(['-' + key, value])
+    # Startstedet står i asv_gazebo/scenario.py, så scenariene vet hvor båten starter.
+    start = WORLDS[world]
+    for key, value in (('x', start['x']), ('y', start['y']), ('z', start['z']), ('Y', start['yaw'])):
+        spawn_args.extend(['-' + key, str(value)])
     processes.append(Node(
         package='ros_gz_sim', executable='create', output='screen', arguments=spawn_args))
     processes.append(Node(
@@ -51,7 +48,7 @@ def launch(context, *args, **kwargs):
 def generate_launch_description():
     share = get_package_share_directory('asv_gazebo')
     return LaunchDescription([
-        DeclareLaunchArgument('world', default_value='open_water', choices=list(SPAWN)),
+        DeclareLaunchArgument('world', default_value='open_water', choices=list(WORLDS)),
         DeclareLaunchArgument('headless', default_value='False'),
         AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', os.path.join(share, 'models')),
         AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', os.path.join(share, 'worlds')),

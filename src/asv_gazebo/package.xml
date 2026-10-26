@@ -7,8 +7,10 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
   <build_depend>xacro</build_depend>
   <exec_depend>vrx_gz</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
 

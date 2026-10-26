@@ -1,0 +1,10 @@
+# Slalåm: fire bøyer på linje nordover fra startstedet, 7 m fra hverandre. Båten skal annenhver
+# gang på østsiden og vestsiden. Rød bøye skal ligge på babord side når båten passerer, grønn på
+# styrbord. Banen gjennom løypa er sim_interface/config/path_slalom.yaml.
+#
+# Posisjoner er x, y i meter (øst, nord) fra båtens startsted. Typene står i asv_gazebo/scenario.py.
+objects:
+  - {type: buoy, name: slalom1_red, color: red, x: 0.0, y: 4.0}
+  - {type: buoy, name: slalom2_green, color: green, x: 0.0, y: 11.0}
+  - {type: buoy, name: slalom3_red, color: red, x: 0.0, y: 18.0}
+  - {type: buoy, name: slalom4_green, color: green, x: 0.0, y: 25.0}
