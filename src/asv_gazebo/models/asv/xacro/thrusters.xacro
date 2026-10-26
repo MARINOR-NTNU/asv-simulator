@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<!-- Thrusterne som makroer. Tallene kommer fra parameters.xacro. -->
+<sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="small_inertial" params="mass inertia">
+    <inertial>
+      <mass>${mass}</mass>
+      <inertia><ixx>${inertia}</ixx><iyy>${inertia}</iyy><izz>${inertia}</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="dark_visual" params="name mesh">
+    <visual name="${name}">
+      <geometry>
+        <mesh>
+          <uri>model://asv/meshes/${mesh}</uri>
+          <!-- STL-filene er i millimeter -->
+          <scale>0.001 0.001 0.001</scale>
+        </mesh>
+      </geometry>
+      <material>
+        <ambient>0.25 0.25 0.25 1</ambient>
+        <diffuse>0.25 0.25 0.25 1</diffuse>
+        <specular>0.2 0.2 0.2 1</specular>
+      </material>
+    </visual>
+  </xacro:macro>
+
+  <!-- Felles for alle propellene: Thruster-pluginen fra Gazebo, som tar kraft i newton. -->
+  <xacro:macro name="thruster_plugin" params="side max_thrust min_thrust diameter">
+    <plugin filename="gz-sim-thruster-system" name="gz::sim::systems::Thruster">
+      <joint_name>${side}_prop_joint</joint_name>
+      <namespace>asv</namespace>
+      <topic>thrusters/${side}/thrust</topic>
+      <thrust_coefficient>0.1</thrust_coefficient>
+      <fluid_density>1000</fluid_density>
+      <propeller_diameter>${diameter}</propeller_diameter>
+      <velocity_control>true</velocity_control>
+      <max_thrust_cmd>${max_thrust}</max_thrust_cmd>
+      <min_thrust_cmd>${min_thrust}</min_thrust_cmd>
+    </plugin>
+  </xacro:macro>
+
+  <xacro:macro name="prop_axis" params="xyz">
+    <axis>
+      <xyz>${xyz}</xyz>
+      <limit><lower>-1e16</lower><upper>1e16</upper><effort>100</effort><velocity>1000</velocity></limit>
+      <dynamics><friction>0.01</friction><damping>0.01</damping></dynamics>
+    </axis>
+  </xacro:macro>
+
+  <!--
+    Dreibar thruster akter: thrusterhus som dreier om z, propell som snurrer om x, kraft på
+    /asv/thrusters/<side>/thrust og vinkel på /asv/thrusters/<side>/pos.
+    y_sign: 1 for babord (left), -1 for styrbord (right).
+  -->
+  <xacro:macro name="steerable_thruster" params="side y_sign">
+    <xacro:property name="pose" value="${stern_x} ${y_sign * stern_y} ${stern_z} 0 0 0"/>
+    <link name="${side}_pod_link">
+      <pose>${pose}</pose>
+      <xacro:dark_visual name="${side}_pod_visual" mesh="${side}_pod.stl"/>
+      <xacro:small_inertial mass="0.5" inertia="0.001"/>
+    </link>
+    <link name="${side}_prop_link">
+      <pose>${pose}</pose>
+      <xacro:dark_visual name="${side}_rotor_visual" mesh="${side}_rotor.stl"/>
+      <xacro:small_inertial mass="0.1" inertia="0.0001"/>
+    </link>
+    <joint name="${side}_pod_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>${side}_pod_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit><lower>${-pod_joint_limit}</lower><upper>${pod_joint_limit}</upper><effort>10</effort><velocity>10</velocity></limit>
+      </axis>
+    </joint>
+    <joint name="${side}_prop_joint" type="revolute">
+      <parent>${side}_pod_link</parent>
+      <child>${side}_prop_link</child>
+      <xacro:prop_axis xyz="1 0 0"/>
+    </joint>
+    <xacro:thruster_plugin side="${side}" max_thrust="${stern_max_thrust}" min_thrust="${stern_min_thrust}"
+                           diameter="${stern_prop_diameter}"/>
+    <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+      <joint_name>${side}_pod_joint</joint_name>
+      <use_velocity_commands>true</use_velocity_commands>
+      <cmd_max>${pod_turn_rate}</cmd_max>
+      <topic>/asv/thrusters/${side}/pos</topic>
+    </plugin>
+  </xacro:macro>
+
+  <!-- Baugthruster i tunnel, skyver sidelengs. Positiv thrust skyver baugen mot babord. -->
+  <xacro:macro name="bow_thruster">
+    <link name="bow_prop_link">
+      <pose>${bow_x} 0 ${bow_z} 0 0 0</pose>
+      <xacro:small_inertial mass="0.1" inertia="0.0001"/>
+    </link>
+    <joint name="bow_prop_joint" type="revolute">
+      <parent>base_link</parent>
+      <child>bow_prop_link</child>
+      <xacro:prop_axis xyz="0 1 0"/>
+    </joint>
+    <xacro:thruster_plugin side="bow" max_thrust="${bow_max_thrust}" min_thrust="${-bow_max_thrust}"
+                           diameter="${bow_prop_diameter}"/>
+  </xacro:macro>
+
+</sdf>

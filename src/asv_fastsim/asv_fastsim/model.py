@@ -1,6 +1,6 @@
 """2D-modell av båten (fram, sidelengs og dreiing) for raske simuleringer uten grafikk.
 
-Tallene leses fra model.sdf i asv_gazebo, så modellen og Gazebo bruker de samme tallene.
+Tallene leses fra model.sdf som asv_gazebo lager fra xacro, så modellen og Gazebo bruker de samme tallene.
 Bølger, rull, stamp og hiv er ikke med. Ingen ROS-avhengigheter, så modellen kan testes uten ROS.
 
 Koordinater: ENU i verden (x øst, y nord, yaw 0 = øst, positiv mot klokka) og FLU på båten.

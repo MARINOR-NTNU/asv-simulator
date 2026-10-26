@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  Sensorene som makroer. De settes inn i base_link i model.sdf.xacro. Nye sensorer (lidar,
+  kamera) legges til her og trenger en bro i asv.launch.py og en linje i sensor_relay sin config.
+-->
+<sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="imu">
+    <sensor name="imu" type="imu">
+      <always_on>1</always_on>
+      <update_rate>${imu_rate}</update_rate>
+      <topic>/asv/sensors/imu</topic>
+      <imu>
+        <orientation_reference_frame>
+          <localization>ENU</localization>
+        </orientation_reference_frame>
+      </imu>
+    </sensor>
+  </xacro:macro>
+
+  <xacro:macro name="gps">
+    <sensor name="navsat" type="navsat">
+      <pose>0 0 ${gps_height} 0 0 0</pose>
+      <always_on>1</always_on>
+      <update_rate>${gps_rate}</update_rate>
+      <topic>/asv/sensors/gps</topic>
+    </sensor>
+  </xacro:macro>
+
+</sdf>

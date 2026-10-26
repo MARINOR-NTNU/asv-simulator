@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<!--
+  Vår egen ASV. model.sdf lages fra denne fila når pakken bygges (CMakeLists.txt), så rediger her
+  og i xacro/, ikke i model.sdf.
+  - xacro/parameters.xacro: alle tall som skal byttes ut med ekte verdier
+  - xacro/thrusters.xacro: thrusterne
+  - xacro/sensors.xacro: sensorene
+
+  Skrogfilen skrog10-1.stl er delt i skrog, thrusterhus og propeller (meshes/), slik at
+  thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Fysikken er
+  beskrevet med tall og enkle former.
+-->
+<sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="xacro/parameters.xacro"/>
+  <xacro:include filename="xacro/thrusters.xacro"/>
+  <xacro:include filename="xacro/sensors.xacro"/>
+
+  <model name="asv">
+
+    <link name="base_link">
+      <inertial>
+        <pose>${hull_cog} 0 0 0</pose>
+        <mass>${hull_mass}</mass>
+        <inertia>
+          <ixx>${hull_ixx}</ixx><iyy>${hull_iyy}</iyy><izz>${hull_izz}</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <visual name="hull_visual">
+        <geometry>
+          <mesh>
+            <uri>model://asv/meshes/hull.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.8 0.8 0.8 1</ambient>
+          <diffuse>0.8 0.8 0.8 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
+
+      <!-- Kollisjon er en enkel boks rundt skroget, ikke selve meshen. -->
+      <collision name="hull_collision">
+        <pose>0 0 -0.065 0 0 0</pose>
+        <geometry>
+          <box><size>1.5 0.5 0.37</size></box>
+        </geometry>
+      </collision>
+
+      <xacro:imu/>
+      <xacro:gps/>
+    </link>
+
+    <link name="hydro_link">
+      <pose>${hydro_pose} 0 0 0</pose>
+      <inertial>
+        <mass>0.1</mass>
+        <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+    </link>
+    <joint name="hydro_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>hydro_link</child>
+    </joint>
+
+    <xacro:steerable_thruster side="left" y_sign="1"/>
+    <xacro:steerable_thruster side="right" y_sign="-1"/>
+    <xacro:bow_thruster/>
+
+    <plugin name="vrx::PolyhedraBuoyancyDrag" filename="libPolyhedraBuoyancyDrag.so">
+      <fluid_density>1000</fluid_density>
+      <fluid_level>0.0</fluid_level>
+      <!-- Motstanden her er lik i alle retninger, så den er slått av. All motstand ligger i
+           SimpleHydrodynamics under, der hver retning har sine egne tall. -->
+      <linear_drag>0.0</linear_drag>
+      <angular_drag>0.0</angular_drag>
+      <buoyancy name="hull_buoyancy">
+        <link_name>base_link</link_name>
+        <pose>${buoyancy_pose} 0 0 0</pose>
+        <geometry>
+          <box><size>${buoyancy_size}</size></box>
+        </geometry>
+      </buoyancy>
+      <wavefield>
+        <topic>/vrx/wavefield/parameters</topic>
+      </wavefield>
+    </plugin>
+
+    <!-- Motstand i vannet, angriper i hydro_link. Tallene og hvordan de er regnet ut, står i
+         parameters.xacro. -->
+    <plugin name="vrx::SimpleHydrodynamics" filename="libSimpleHydrodynamics.so">
+      <link_name>hydro_link</link_name>
+      <xDotU>${xDotU}</xDotU>
+      <yDotV>${yDotV}</yDotV>
+      <nDotR>${nDotR}</nDotR>
+      <xU>${xU}</xU>
+      <xUU>${xUU}</xUU>
+      <yV>${yV}</yV>
+      <yVV>${yVV}</yVV>
+      <zW>${zW}</zW>
+      <kP>${kP}</kP>
+      <kPP>${kPP}</kPP>
+      <mQ>${mQ}</mQ>
+      <mQQ>${mQQ}</mQQ>
+      <nR>${nR}</nR>
+      <nRR>${nRR}</nRR>
+    </plugin>
+
+    <!-- Publiserer leddvinklene, blant annet hvor thrusterne peker. -->
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher"/>
+
+  </model>
+</sdf>

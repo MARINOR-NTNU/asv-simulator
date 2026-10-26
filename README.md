@@ -104,7 +104,7 @@ ros2 launch sim_interface sim.launch.py sim:=fast real_time_factor:=20 control:=
 `control` er ett valg, så `stub_controller` og PX4 kan ikke styre motorene samtidig. Ikke start `demo.launch.py` eller `path.launch.py` ved siden av `control:=px4`, for de starter også `stub_controller`, og da kjemper to om motorene uten noen feilmelding.
 
 ### Rask 2D-simulator for mange tester
-`src/asv_fastsim` er en 2D-modell av vår båt (fram, sidelengs og dreiing) uten grafikk. Den leser masse, motstand, thrustere og grenser fra `asv_gazebo/models/asv/model.sdf`, så den bruker de samme tallene som Gazebo. Den publiserer de samme `/autonomy/...`-topicene og leser de samme `/control/...`, så nodene til autonomy og control merker ikke forskjell.
+`src/asv_fastsim` er en 2D-modell av vår båt (fram, sidelengs og dreiing) uten grafikk. Den leser masse, motstand, thrustere og grenser fra `model.sdf` som `asv_gazebo` lager, så den bruker de samme tallene som Gazebo. Den publiserer de samme `/autonomy/...`-topicene og leser de samme `/control/...`, så nodene til autonomy og control merker ikke forskjell.
 
 - Målt mot Gazebo 2026-10-19 med samme testsekvens: fart, akselerasjon, oppbremsing, dreiehastighet, svingradius og thrustervinkel er innen 1 % (oppbremsing etter 15 s innen 3 %).
 - Med hele ROS-kjeden (`control:=stub autonomy:=fake`) oppfører den seg likt som i sanntid opp til `real_time_factor:=20`. Ved full fart (ca. 46 ganger sanntid) henger ROS-nodene etter, og regulatoren blir ustabil. Modellen alene, uten ROS, går ca. 700 ganger raskere enn sanntid.
@@ -121,7 +121,13 @@ ros2 launch sim_interface demo.launch.py sim:=vrx_asv heading:=1.0 speed:=1.0
 ```
 Båten har to thrustere akter (`left`, `right`) som kan dreies, og en fast baugthruster (`bow`) som skyver sidelengs, så `/control/thruster/bow/thrust` finnes i tillegg. Foreløpig har den bare IMU og GPS. Leddvinklene, blant annet hvor thrusterne peker, publiseres på `/asv/joint_states`.
 
-Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/asv/meshes/`), så thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Fysikken står som tall i `models/asv/model.sdf`:
+Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/asv/meshes/`), så thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Modellen er skrevet i xacro, og `model.sdf` lages når pakken bygges:
+- `models/asv/model.sdf.xacro`: setter båten sammen.
+- `models/asv/xacro/parameters.xacro`: **alle tallene** (masse, tyngdepunkt, motstand, thrusterposisjoner, maks thrust, dreiegrenser, sensorfrekvenser). Her endres båten.
+- `models/asv/xacro/thrusters.xacro`: én makro for dreibar thruster (brukt for venstre og høyre) og én for baugthrusteren.
+- `models/asv/xacro/sensors.xacro`: IMU og GPS. Nye sensorer legges til her.
+
+Bygg `asv_gazebo` på nytt etter en endring. Tallene i dag:
 
 | Størrelse | Verdi | Kilde |
 |---|---|---|
@@ -130,7 +136,7 @@ Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/as
 | Dypgang | 10,5 cm | følger av massen og skrogformen |
 | Maks thrust | 50 N per thruster akter, 25 N i baugen | anslag |
 | Dreiing av thrustere | ±90°, 2 rad/s | anslag |
-| Motstand i vannet | se kommentaren i `model.sdf` | regnet ut fra skrogformen, ikke målt |
+| Motstand i vannet | se kommentaren i `xacro/parameters.xacro` | regnet ut fra skrogformen, ikke målt |
 
 Målt i simulatoren med disse tallene: 0,77 m/s ved 10 N, 1,39 m/s ved 30 N og 2,63 m/s ved full kraft (100 N). Baugthrusteren alene dreier båten ca. 70 grader per sekund. Båten ligger høyt i vannet og har lite retningsstabilitet, så den er avhengig av at regulatoren styrer aktivt.
 

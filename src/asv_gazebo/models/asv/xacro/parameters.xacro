@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<!--
+  Alle tallene i båtmodellen som skal byttes ut med ekte verdier. Endres de, må Gazebo og
+  asv_fastsim fortsatt gi de samme resultatene (asv_fastsim leser den genererte model.sdf).
+
+  Koordinater: origo midt i lengden, x forover, y mot babord, z opp. Målt fra STL-filen:
+  lengde 1,50 m, bredde 0,53 m, kjøl ved z = -0,25, dekk ved z = ca. 0,12.
+-->
+<sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Skroget. ANSLAG: 45 kg, midt i spennet 40-50 kg. Gir vannlinje ved z = -0,145
+       (dypgang 10,5 cm). 40 kg gir z = -0,153 og 50 kg gir z = -0,136. -->
+  <xacro:property name="hull_mass" value="45.0"/>
+  <xacro:property name="hull_cog" value="-0.19 0 -0.12"/>
+  <!-- Treghetsmomentet er regnet som en massiv boks. -->
+  <xacro:property name="hull_ixx" value="1.24"/>
+  <xacro:property name="hull_iyy" value="7.65"/>
+  <xacro:property name="hull_izz" value="8.3"/>
+
+  <!-- Oppdrift: en boks med samme vannlinjeareal (ca. 0,58 m2) og oppdriftssenter (x = -0,19)
+       som skroget. Bunnen er lagt slik at dypgangen stemmer for masser mellom 40 og 50 kg.
+       Utenfor det spennet må boksen regnes ut på nytt. -->
+  <xacro:property name="buoyancy_pose" value="-0.19 0 -0.051"/>
+  <xacro:property name="buoyancy_size" value="1.12 0.52 0.342"/>
+
+  <!-- Angrepspunktet for motstanden i vannet, 6 cm bak tyngdepunktet. ANSLAG: skrogets
+       lateralplan har senter ved x = -0,05, men thrusterne og stagene akter virker som finner og
+       trekker det bakover. Ligger punktet foran tyngdepunktet, blir båten retningsustabil og
+       spinner rundt i høy fart. -->
+  <xacro:property name="hydro_pose" value="-0.25 0 -0.15"/>
+
+  <!--
+    Motstand i vannet (SimpleHydrodynamics). ANSLAG regnet ut fra skrogformen ved 45 kg:
+    - forover (xUU): friksjon på våt flate 0,82 m2 (ca. 2), nedsenket akterspeil 0,5 x 0,1 m
+      (ca. 7,5), thrustere og stag (ca. 3,5), pluss litt for bølgemotstand.
+    - sideveis (yVV): 0,5 * rho * Cd * lateralplan, med Cd = 1,1 og lateralplan 0,149 m2,
+      pluss thrusterne.
+    - dreiing (nRR): 0,5 * rho * Cd * integralet av |x|^3 * dypgang langs skroget (0,0137 m5),
+      pluss thrusterne 0,70 m bak midten.
+    - hiv, rull og stamp (zW, kP, mQ): valgt slik at båten demper svingninger på noen få
+      perioder (dempingsforhold ca. 0,2-0,4).
+    Medsvingende vannmasse (xDotU, yDotV, nDotR) er 0, så båten reagerer raskere enn den virkelige.
+  -->
+  <xacro:property name="xDotU" value="0.0"/>
+  <xacro:property name="yDotV" value="0.0"/>
+  <xacro:property name="nDotR" value="0.0"/>
+  <xacro:property name="xU" value="2.0"/>
+  <xacro:property name="xUU" value="14.0"/>
+  <xacro:property name="yV" value="5.0"/>
+  <xacro:property name="yVV" value="90.0"/>
+  <xacro:property name="zW" value="400.0"/>
+  <xacro:property name="kP" value="8.0"/>
+  <xacro:property name="kPP" value="10.0"/>
+  <xacro:property name="mQ" value="50.0"/>
+  <xacro:property name="mQQ" value="30.0"/>
+  <xacro:property name="nR" value="1.5"/>
+  <xacro:property name="nRR" value="11.0"/>
+
+  <!-- Thrustere akter. Propellakselen ligger ved x = -0,696, y = +-0,199, z = -0,268 (STL). -->
+  <xacro:property name="stern_x" value="-0.696"/>
+  <xacro:property name="stern_y" value="0.199"/>
+  <xacro:property name="stern_z" value="-0.268"/>
+  <!-- ANSLAG: 50 N forover. Bakover gir de 60 % av kraften forover (control, 2026-10-19). -->
+  <xacro:property name="stern_max_thrust" value="50"/>
+  <xacro:property name="stern_min_thrust" value="-30"/>
+  <xacro:property name="stern_prop_diameter" value="0.09"/>
+  <!-- Dreiing: +-90° er bekreftet (control, 2026-10-19), og grensen ligger i thruster_adapter.
+       Leddet tillater litt mer, for et ledd som kjøres helt i stopp, låser seg.
+       ANSLAG: at de dreier 2 rad/s. -->
+  <xacro:property name="pod_joint_limit" value="1.75"/>
+  <xacro:property name="pod_turn_rate" value="2.0"/>
+
+  <!-- Baugthruster i tunnelen. ANSLAG: 25 N, like sterk begge veier (control, 2026-10-26). -->
+  <xacro:property name="bow_x" value="0.54"/>
+  <xacro:property name="bow_z" value="-0.20"/>
+  <xacro:property name="bow_max_thrust" value="25"/>
+  <xacro:property name="bow_prop_diameter" value="0.06"/>
+
+  <!-- Sensorer -->
+  <xacro:property name="imu_rate" value="100"/>
+  <xacro:property name="gps_rate" value="20"/>
+  <xacro:property name="gps_height" value="0.15"/>
+
+</sdf>
