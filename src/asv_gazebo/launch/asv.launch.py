@@ -2,6 +2,7 @@
 
 Modellen og open_water lages fra xacro når den startes, med valgene under:
   sensor_noise:=true     støy på IMU og GPS
+  current_speed:=0.5     strøm i m/s, med current_direction (grader, 0 = mot øst), i alle verdenene
   wind_speed:=5          vind i m/s (bare open_water), med wind_direction (grader, 0 = mot øst)
                          og wind_gust (hvor mye vinden varierer)
 """
@@ -52,7 +53,7 @@ def launch(context, *args, **kwargs):
 
     model = xacro.process_file(
         os.path.join(share, 'models', 'asv', 'model.sdf.xacro'),
-        mappings={'sensor_noise': arg('sensor_noise')}).toxml()
+        mappings={k: arg(k) for k in ('sensor_noise', 'current_speed', 'current_direction')}).toxml()
 
     joint_states = f'/world/{world}/model/asv/joint_state'
     actions += vrx_gz.launch.simulation(world, headless)
@@ -77,6 +78,8 @@ def generate_launch_description():
         DeclareLaunchArgument('world', default_value='open_water', choices=list(WORLDS)),
         DeclareLaunchArgument('headless', default_value='False'),
         DeclareLaunchArgument('sensor_noise', default_value='false', description='true = støy på IMU og GPS'),
+        DeclareLaunchArgument('current_speed', default_value='0', description='m/s, strøm'),
+        DeclareLaunchArgument('current_direction', default_value='0', description='grader, 0 = mot øst'),
         DeclareLaunchArgument('wind_speed', default_value='0', description='m/s, bare open_water'),
         DeclareLaunchArgument('wind_direction', default_value='0', description='grader, 0 = mot øst'),
         DeclareLaunchArgument('wind_gust', default_value='0', description='0 = jevn vind'),

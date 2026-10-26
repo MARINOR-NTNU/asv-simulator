@@ -26,13 +26,14 @@ services:
       - >-
         cd /root/vrx_ws &&
         MAKEFLAGS=-j1 colcon build --merge-install --executor sequential --parallel-workers 1
-        --packages-select asv_gazebo sim_interface &&
+        --packages-select asv_hydrodynamics asv_gazebo sim_interface &&
         source install/setup.bash &&
         ros2 launch sim_interface sim.launch.py control:=px4
         sim:=${SIM:-vrx_asv} world:=${WORLD:-open_water} scenario:=${SCENARIO:-none} headless:=${HEADLESS:-false}
         forward_thruster:=${FORWARD_THRUSTER:-bow}
         sensor_noise:=${SENSOR_NOISE:-false} wind_speed:=${WIND_SPEED:-0} wind_direction:=${WIND_DIRECTION:-0}
         wind_gust:=${WIND_GUST:-0} thrust_time_constant:=${THRUST_TIME_CONSTANT:-0.0}
+        current_speed:=${CURRENT_SPEED:-0} current_direction:=${CURRENT_DIRECTION:-0}
 
   px4:
     image: px4-sitl:proteus

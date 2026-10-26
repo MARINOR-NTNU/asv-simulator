@@ -83,7 +83,7 @@ Pakken må bygges på nytt hver gang containeren startes med `--rm`, og etter en
 ### Starte alt med én kommando
 `sim.launch.py` starter simulatoren og grensesnittet, og velger hva som står for autonomy og control:
 ```bash
-colcon build --merge-install --packages-select asv_gazebo sim_interface
+colcon build --merge-install --packages-select asv_hydrodynamics asv_gazebo sim_interface
 source install/setup.bash
 
 ros2 launch sim_interface sim.launch.py                                   # vår båt, bare grensesnittet (f.eks. for autonomy)
@@ -106,7 +106,7 @@ ros2 launch sim_interface sim.launch.py control:=px4                      # cont
 ### Vår egen båt i VRX
 Pakken `src/asv_gazebo` inneholder en Gazebo-modell av vår egen båt (`models/asv`), bygget rundt skroget `skrog10-1.stl`. Start den i stedet for WAM-V slik:
 ```bash
-colcon build --merge-install --packages-select asv_gazebo sim_interface
+colcon build --merge-install --packages-select asv_hydrodynamics asv_gazebo sim_interface
 source install/setup.bash
 ros2 launch asv_gazebo asv.launch.py                 # headless:=true for å kjøre uten vindu
 ros2 launch sim_interface demo.launch.py sim:=vrx_asv heading:=1.0 speed:=1.0
@@ -142,11 +142,11 @@ Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båt
 ### Åpent hav
 Standardverdenen for vår båt er `open_water` (`asv_gazebo/worlds/open_water.sdf.xacro`): bare vannflaten fra VRX (6 × 6 km), bølger, sol og himmel, uten land. Båten starter i origo, og GPS-origo er stedet båten startet i `sydney_regatta`, så GPS-posisjonene er de samme i begge verdenene. Bølgehøyde, periode og retning står øverst i fila. `world:=sydney_regatta` gir VRX sin verden med land og bøyer.
 
-### Støy, vind og motortreghet
-Som standard er simulatoren «snill»: perfekte sensorer, ingen vind og motorer som reagerer øyeblikkelig. For å teste regulatorer under mer realistiske forhold kan hver av disse slås på:
+### Støy, vind, strøm og motortreghet
+Som standard er simulatoren «snill»: perfekte sensorer, ingen vind eller strøm, og motorer som reagerer øyeblikkelig. For å teste regulatorer under mer realistiske forhold kan hver av disse slås på:
 ```bash
-ros2 launch sim_interface sim.launch.py control:=px4 sensor_noise:=true wind_speed:=5 wind_direction:=90 thrust_time_constant:=0.3
-SENSOR_NOISE=true WIND_SPEED=5 WIND_DIRECTION=90 THRUST_TIME_CONSTANT=0.3 docker compose up
+ros2 launch sim_interface sim.launch.py control:=px4 sensor_noise:=true wind_speed:=5 wind_direction:=90 current_speed:=0.5 current_direction:=0 thrust_time_constant:=0.3
+SENSOR_NOISE=true WIND_SPEED=5 WIND_DIRECTION=90 CURRENT_SPEED=0.5 THRUST_TIME_CONSTANT=0.3 docker compose up
 ```
 | Valg | Standard | Betyr |
 |---|---|---|
@@ -154,9 +154,13 @@ SENSOR_NOISE=true WIND_SPEED=5 WIND_DIRECTION=90 THRUST_TIME_CONSTANT=0.3 docker
 | `wind_speed` | `0` | middelvind i m/s (VRX sin vindplugin), bare i `open_water` |
 | `wind_direction` | `0` | retningen vinden blåser **mot**, i grader: 0 = mot øst, 90 = mot nord |
 | `wind_gust` | `0` | hvor mye vinden varierer (0 = jevn) |
+| `current_speed` | `0` | strøm i m/s, i alle verdenene |
+| `current_direction` | `0` | retningen strømmen går **mot**, i grader: 0 = mot øst, 90 = mot nord |
 | `thrust_time_constant` | `0` | sekunder til motoren har nådd ca. 63 % av en ny kraft. Kan endres mens den kjører: `ros2 param set /thruster_adapter thrust_time_constant 0.3` |
 
-Målt 2026-10-26: med støy får farten fra GPS standardavvik 0,04 m/s (mot 0,001 uten), og `stub_controller` holder fortsatt 1,0 m/s. Med 5 m/s vind mot nord driver båten uten motorer 0,4 m/s nordover. Med tidskonstant 0,5 s er kraften 61 % av et sprang etter 0,5 s og 85 % etter 1 s. Vindkoeffisientene og støytallene er anslag. Strøm finnes ikke ennå, fordi VRX sin vannmotstand ikke støtter det.
+Målt 2026-10-26: med støy får farten fra GPS standardavvik 0,04 m/s (mot 0,001 uten), og `stub_controller` holder fortsatt 1,0 m/s. Med 5 m/s vind mot nord driver båten uten motorer 0,4 m/s nordover. Med tidskonstant 0,5 s er kraften 61 % av et sprang etter 0,5 s og 85 % etter 1 s. Med 0,5 m/s strøm mot nord driver båten uten motorer 0,48 m/s nordover etter 30 s. Vindkoeffisientene og støytallene er anslag.
+
+Strømmen ligger i vannmotstanden. `src/asv_hydrodynamics` er en kopi av VRX sin `SimpleHydrodynamics` (Apache 2.0) der motstanden regnes ut fra farten gjennom vannet (båtens fart minus strømmen) i stedet for over grunnen. Uten strøm er den lik VRX sin: 2 × 20 N gir 1,622 m/s med begge.
 
 ### Scenarier: bøyer og andre ting
 Et scenario er en kort yaml-fil i `asv_gazebo/scenarios/` med tingene som skal stå i verdenen. Posisjonene er meter øst og nord fra båtens startsted, så samme scenario virker i alle verdenene:
@@ -220,7 +224,7 @@ HEADLESS=true docker compose up              # uten Gazebo-vindu
 | `SIM` | `vrx_asv` | `vrx_asv`, `vrx` eller `fast`, som i `sim.launch.py` |
 | `WORLD` | `open_water` | `open_water` (åpent hav) eller `sydney_regatta` (VRX med land), bare med `SIM=vrx_asv` |
 | `SCENARIO` | ingen | scenario fra `asv_gazebo/scenarios/`, f.eks. `slalom` |
-| `SENSOR_NOISE`, `WIND_SPEED`, `WIND_DIRECTION`, `WIND_GUST`, `THRUST_TIME_CONSTANT` | av | se «Støy, vind og motortreghet» |
+| `SENSOR_NOISE`, `WIND_SPEED`, `WIND_DIRECTION`, `WIND_GUST`, `CURRENT_SPEED`, `CURRENT_DIRECTION`, `THRUST_TIME_CONSTANT` | av | se «Støy, vind, strøm og motortreghet» |
 | `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
 | `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
 | `PX4_TARGET` | `px4_sitl_proteus` | byggemålet i PX4 (control sitt SITL-bygg med modulene deres) |

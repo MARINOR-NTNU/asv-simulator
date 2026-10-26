@@ -13,7 +13,7 @@ Hold `docs/status.md` og `docs/px4.md` oppdatert når noe endres eller testes.
 - Bygg med ett løp om gangen: `MAKEFLAGS="-j1" colcon build --merge-install --executor sequential --parallel-workers 1`. Maskinen har lite minne og har frosset ved parallelle bygg.
 - Bruk alltid `--merge-install`.
 - Bygg PX4 med `make px4_sitl_proteus j=1` i PX4-containeren (`docker compose up` gjør det).
-- Bygg egne pakker i containeren: `colcon build --merge-install --packages-select asv_gazebo sim_interface`. Bygget forsvinner når containeren stoppes (`--rm`).
+- Bygg egne pakker i containeren: `colcon build --merge-install --packages-select asv_hydrodynamics asv_gazebo sim_interface`. Bygget forsvinner når containeren stoppes (`--rm`).
 - Filer som lages i containeren, eies av root. Gi dem tilbake til brukeren på verten.
 
 ## Regler

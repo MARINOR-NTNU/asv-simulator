@@ -5,6 +5,7 @@
   scenario:=<navn>              ting som settes inn i verdenen, fra asv_gazebo/scenarios/ (sim:=vrx_asv)
   sensor_noise:=true            støy på IMU og GPS (sim:=vrx_asv)
   wind_speed:=5                 vind i m/s, med wind_direction og wind_gust (open_water)
+  current_speed:=0.5            strøm i m/s, med current_direction (sim:=vrx_asv)
   thrust_time_constant:=0.3     treghet i motorene, sekunder
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
   autonomy:=none | fake | path  ingen, fake_heading, eller waypoint_follower
@@ -53,6 +54,8 @@ def generate_launch_description():
             'scenario', default_value='none',
             description='sim:=vrx_asv: scenario fra asv_gazebo/scenarios/, f.eks. slalom. none = ingen'),
         DeclareLaunchArgument('sensor_noise', default_value='false', description='true = støy på IMU og GPS'),
+        DeclareLaunchArgument('current_speed', default_value='0', description='m/s, strøm'),
+        DeclareLaunchArgument('current_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
         DeclareLaunchArgument('wind_speed', default_value='0', description='m/s, bare world:=open_water'),
         DeclareLaunchArgument('wind_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
         DeclareLaunchArgument('wind_gust', default_value='0', description='hvor mye vinden varierer, 0 = jevn'),
@@ -73,7 +76,8 @@ def generate_launch_description():
         include('asv_gazebo', 'asv.launch.py',
                 {'headless': arg('headless'), 'world': arg('world'), 'sensor_noise': arg('sensor_noise'),
                  'wind_speed': arg('wind_speed'), 'wind_direction': arg('wind_direction'),
-                 'wind_gust': arg('wind_gust')},
+                 'wind_gust': arg('wind_gust'), 'current_speed': arg('current_speed'),
+                 'current_direction': arg('current_direction')},
                 when('sim', 'vrx_asv')),
         include('asv_gazebo', 'scenario.launch.py',
                 {'scenario': arg('scenario'), 'world': arg('world')},

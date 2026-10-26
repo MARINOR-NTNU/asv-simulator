@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <depend>xacro</depend>
   <exec_depend>vrx_gz</exec_depend>
+  <exec_depend>asv_hydrodynamics</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>

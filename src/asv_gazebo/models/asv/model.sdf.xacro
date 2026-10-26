@@ -14,6 +14,9 @@
   <!-- Valg når modellen lages (asv.launch.py sender dem videre fra sim.launch.py). -->
   <xacro:arg name="sensor_noise" default="false"/>
   <xacro:property name="sensor_noise" value="$(arg sensor_noise)"/>
+  <!-- Strøm: fart i m/s og retningen den går mot, i grader (0 = mot øst, 90 = mot nord). -->
+  <xacro:arg name="current_speed" default="0"/>
+  <xacro:arg name="current_direction" default="0"/>
 
   <xacro:include filename="xacro/parameters.xacro"/>
   <xacro:include filename="xacro/thrusters.xacro"/>
@@ -93,9 +96,12 @@
     </plugin>
 
     <!-- Motstand i vannet, angriper i hydro_link. Tallene og hvordan de er regnet ut, står i
-         parameters.xacro. -->
-    <plugin name="vrx::SimpleHydrodynamics" filename="libSimpleHydrodynamics.so">
+         parameters.xacro. Pluginen er VRX sin SimpleHydrodynamics med strøm lagt til
+         (asv_hydrodynamics): motstanden regnes ut fra farten gjennom vannet. -->
+    <plugin name="asv::CurrentHydrodynamics" filename="libCurrentHydrodynamics.so">
       <link_name>hydro_link</link_name>
+      <current_speed>$(arg current_speed)</current_speed>
+      <current_direction>$(arg current_direction)</current_direction>
       <xDotU>${xDotU}</xDotU>
       <yDotV>${yDotV}</yDotV>
       <nDotR>${nDotR}</nDotR>
