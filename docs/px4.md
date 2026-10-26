@@ -56,7 +56,7 @@ Control har laget `feature/control/sitl_proteus` med `boards/px4/sitl/proteus.px
 ## `main` hos control (testet 2026-10-26, kl. 15)
 Control har slått sammen `sitl_proteus` inn i `main` (pull request #4), og `rcPublisher` regner nå om RC fra 1000–2000 µs til -100..100 for alle fire kanalene. Submodulen følger `main` (`8420d758a2`). Med virtuell RC og modulene startet for hånd, og broen med standardinnstillinger (ingen midlertidig omregning):
 - 1700 µs på begge akterthrusterne gir 40 % i `motor_output`, 20 N og 1,62 m/s. Bare babord motor svinger båten med klokka. Baugen på 1700 µs gir -10 N (baugen mot styrbord). Kraft og fortegn stemmer.
-- **Vinkelen kommer også som -100..100, ikke radianer som avtalt.** RC 1750 gir 50 i `port_side_angle`, som broen sender videre som 50 rad (begrenset til 90° i `thruster_adapter`). Enten sender control radianer, eller så settes `angle_scale` i `config/px4_bridge.yaml` til π/2/100 = 0,0157 (100 = 90° mot babord). Ikke avklart.
+- **Vinkelen kommer også som -100..100, ikke radianer som avtalt.** RC 1750 gir 50 i `port_side_angle`, som broen sender videre som 50 rad (begrenset til 90° i `thruster_adapter`). Bestemt 2026-10-26: vi godtar -100..100 også for vinkelen. `angle_scale` i `config/px4_bridge.yaml` er π/2/100 = 0,0157, så 100 blir 90° mot babord, og kontrakten på ROS-siden er fortsatt radianer.
 - Fortsatt mangler: modulene startes ikke i SITL, og `custom.xml`-feilen ved ny kopi er ikke rettet.
 
 ## Hele veien fra PX4 til motorene (testet 2026-10-26)
@@ -139,6 +139,5 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10
 ## Venter på svar fra control
 - At `switch_motor_output` (og `rcPublisher`, `motor_writer`) startes i SITL. De er bygget inn i `px4_sitl_proteus`, men startes ikke.
 - Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren (`rc_channels` i `px4_hil_bridge` virker).
-- Om vinkelen skal være radianer (som avtalt) eller -100..100 (som `rcPublisher` sender nå). Thrust er regnet om riktig.
 - At kopieringen av `custom.xml` i `CMakeLists.txt` skjer etter at MAVLink-submodulen er hentet, så en ny kopi bygger uten triks.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.

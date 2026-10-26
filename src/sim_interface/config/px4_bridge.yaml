@@ -13,10 +13,10 @@ px4_motor_bridge:
     # så -100 % blir -30 N. Baugthrusteren er like sterk begge veier.
     stern_reverse_ratio: 0.6
     forward_reverse_ratio: 1.0
-    # Vinklene er i radianer, positiv mot babord sett bakfra, ±90° (control, 2026-10-19).
-    # Det er det samme som kontrakten, så de sendes rett videre.
+    # Vinklene kommer som -100..100 fra control (rcPublisher, 2026-10-26), der 100 = 90° mot babord
+    # sett bakfra. Kontrakten (/control/thruster/*/angle) er radianer, så scale = (pi/2) / 100.
     angle_offset: 0.0
-    angle_scale: 1.0
+    angle_scale: 0.015707963
     forward_thruster: ''   # tom = forward_propeller_thrust ignoreres (WAM-V har ingen)
 
 px4_seapath_bridge:

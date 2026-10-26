@@ -301,7 +301,7 @@ ros2 topic pub -r 20 /fmu/out/motor_output px4_msgs/msg/MotorOutput "{port_side_
 **Slik tolkes MotorOutput i dag** (innstillingene ligger i `config/px4_bridge.yaml`):
 - `port_side_*` → `left`, `starboard_*` → `right`, `forward_propeller_thrust` → `bow` (med `forward_thruster:=bow`).
 - Thrust er -100..100 % (avtalt med control). Broen gjør det om til newton med maks thrust 50 N akter og 25 N baug (anslag). Bakover gir akterthrusterne 60 %, så -100 % blir -30 N. Med WAM-V settes `stern_thrust_scale: 23.5` og `stern_reverse_ratio: 1.0`.
-- Vinklene er radianer og sendes rett gjennom: positiv mot babord sett bakfra, ±90°.
+- Vinklene er også -100..100 fra control (100 = 90° mot babord sett bakfra). Broen gjør dem om til radianer (`angle_scale` 0,0157), så `/control/thruster/*/angle` er fortsatt radianer.
 - Positiv vinkel dreier thrusterne mot babord, og båten svinger da mot styrbord. Er fortegnet motsatt hos control, settes `angle_scale: -1.0`.
 - Positiv baugthrust skyver baugen mot babord på `/control/thruster/bow/thrust`. Hos control skyver positiv `forward_propeller_thrust` den mot styrbord, så broen snur fortegnet.
 
