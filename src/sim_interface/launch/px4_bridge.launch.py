@@ -15,6 +15,8 @@ def nodes(context):
     return [
         Node(package='sim_interface', executable='px4_motor_bridge', parameters=motor_params),
         Node(package='sim_interface', executable='px4_seapath_bridge', parameters=params),
+        # Sensordata og klokke til PX4 over MAVLink. Gjør ingenting før PX4 kobler seg til (SITL).
+        Node(package='sim_interface', executable='px4_hil_bridge', parameters=params),
     ]
 
 

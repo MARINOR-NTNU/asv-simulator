@@ -25,3 +25,11 @@ px4_seapath_bridge:
     rate: 50.0   # Hz. Hvor ofte den ekte Seapath-en sender, er ikke avklart.
     tau: 0.5     # sekunder, glatting av farten fra GPS
     heave_tau: 20.0   # sekunder, middelhøyden heave regnes fra
+
+px4_hil_bridge:
+  ros__parameters:
+    port: 4560   # TCP-porten PX4 i SITL kobler seg til (simulator_mavlink)
+    # Jordas magnetfelt i NED, gauss. PX4 sammenligner med sin modell for GPS-posisjonen, så det
+    # må passe med stedet. Dette er sydney_regatta (ca. 0,57 G, inklinasjon -64°, deklinasjon 12,5°).
+    mag_ned: [0.244, 0.054, -0.512]
+    tau: 0.5     # sekunder, glatting av farten fra GPS

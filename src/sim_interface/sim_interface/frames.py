@@ -23,6 +23,19 @@ def attitude_enu_to_ned(roll, pitch, yaw):
     return roll, -pitch, heading
 
 
+def enu_to_flu(q, v):
+    """Vektor i verden (ENU) -> båtens ramme (FLU). q = (x, y, z, w) er båtens orientering i ENU."""
+    # Roterer med den konjugerte kvaternionen: v + 2w(u x v) + 2u x (u x v), med u = -(x, y, z).
+    x, y, z, w = q
+    ux, uy, uz = -x, -y, -z
+    cx = uy * v[2] - uz * v[1]
+    cy = uz * v[0] - ux * v[2]
+    cz = ux * v[1] - uy * v[0]
+    return (v[0] + 2.0 * (w * cx + uy * cz - uz * cy),
+            v[1] + 2.0 * (w * cy + uz * cx - ux * cz),
+            v[2] + 2.0 * (w * cz + ux * cy - uy * cx))
+
+
 def rates_flu_to_frd(x, y, z):
     """Vinkelhastighet i båtens FLU -> FRD. Yaw rate blir positiv med klokka sett ovenfra."""
     return x, -y, -z

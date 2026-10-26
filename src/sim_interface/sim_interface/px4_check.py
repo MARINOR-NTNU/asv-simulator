@@ -58,6 +58,20 @@ def udp_port_open(port):
     return False
 
 
+def tcp_connected(port):
+    """Om noe er koblet til den lokale TCP-porten (tilstand 01 = ESTABLISHED i /proc/net/tcp)."""
+    for path in ('/proc/net/tcp', '/proc/net/tcp6'):
+        try:
+            lines = open(path).read().splitlines()[1:]
+        except OSError:
+            continue
+        for line in lines:
+            fields = line.split()
+            if fields[1].endswith(f':{port:04X}') and fields[3] == '01':
+                return True
+    return False
+
+
 def main():
     rclpy.init()
     node = rclpy.create_node('px4_check')
@@ -91,7 +105,7 @@ def main():
         r.ok('Simulatoren kjører (/clock)')
     else:
         r.fail('Ingen /clock', ['Start simulatoren: ros2 launch sim_interface sim.launch.py control:=px4'])
-    for name in ('px4_motor_bridge', 'px4_seapath_bridge', 'thruster_adapter'):
+    for name in ('px4_motor_bridge', 'px4_seapath_bridge', 'px4_hil_bridge', 'thruster_adapter'):
         if name in nodes:
             r.ok(f'{name} kjører')
         else:
@@ -118,6 +132,11 @@ def main():
                ['Agenten kjører på en annen port, eller over serie (kortet på USB).'])
 
     r.section('PX4')
+    if tcp_connected(4560):
+        r.ok('PX4 er koblet til px4_hil_bridge (TCP 4560) og får sensordata og klokke over MAVLink')
+    else:
+        r.info('PX4 er ikke koblet til px4_hil_bridge (TCP 4560). Med none_iris venter PX4 på den '
+               'ved oppstart. Med sihsim_quadx brukes den ikke.')
     topics = node.get_topic_names_and_types()
     from_px4 = [t for t, _ in topics if t.startswith('/fmu/') and any(
         e.node_name in PX4_NODE_NAMES for e in
@@ -129,6 +148,7 @@ def main():
     else:
         r.fail('PX4 er ikke koblet til agenten', [
             'Kjører PX4, og er uxrce_dds_client startet? (uxrce_dds_client status i PX4-konsollen)',
+            'Med none_iris starter ikke uxrce_dds_client før PX4 er koblet til px4_hil_bridge (se over).',
             f'Samme PC og --net=host: PX4 skal finne agenten på 127.0.0.1:{port}. '
             'Annen PC: sett UXRCE_DDS_AG_IP til IP-en til simulator-PC-en.',
             f'ROS_DOMAIN_ID her er {domain}. Den må være lik UXRCE_DDS_DOM_ID i PX4.'])

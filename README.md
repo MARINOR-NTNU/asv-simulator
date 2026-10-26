@@ -44,6 +44,7 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `stub_controller` | Midlertidig erstatning for control: P-regulator fra heading-feil til thrust. |
 | `px4_motor_bridge` | Erstatter `motor_writer` i PX4: `MotorOutput` fra PX4 → `/control/thruster/...`. Se «Kjøre control sin PX4 mot simulatoren». |
 | `px4_seapath_bridge` | Erstatter `seapath`-driveren i PX4: IMU og GPS → `SeapathData` til PX4. |
+| `px4_hil_bridge` | Er simulatoren PX4 venter på i SITL: IMU og GPS → `HIL_SENSOR` og `HIL_GPS` over MAVLink (TCP 4560), med simuleringstiden som klokke. |
 
 ### Faste topics
 | Topic | Type | Enhet |
@@ -182,7 +183,7 @@ xhost +local:docker                          # bare for Gazebo-vindu
 docker compose up                            # vår båt i Gazebo, broene, agenten og PX4
 SIM=fast HEADLESS=true docker compose up     # 2D-simulatoren i stedet, uten vindu
 ```
-`vrx` bygger pakkene våre og kjører `sim.launch.py control:=px4`. `px4` bygger PX4 (første gang 30–60 min med ett løp om gangen, siden bare det som er endret) og starter den. Filene i `px4/Flightcontroller-px4/build/` eies av brukeren din, ikke root.
+`vrx` bygger pakkene våre og kjører `sim.launch.py control:=px4`, som også starter `px4_hil_bridge`. PX4 kobler seg til den på TCP 4560 og får IMU, kompass, barometer og GPS derfra, med simuleringstiden som klokke (lockstep). Motorkommandoene går fortsatt som `MotorOutput` via agenten. `px4` bygger PX4 (første gang 30–60 min med ett løp om gangen, siden bare det som er endret) og starter den. Filene i `px4/Flightcontroller-px4/build/` eies av brukeren din, ikke root.
 
 | Variabel | Standard | Betyr |
 |---|---|---|
@@ -190,7 +191,7 @@ SIM=fast HEADLESS=true docker compose up     # 2D-simulatoren i stedet, uten vin
 | `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
 | `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
 | `PX4_TARGET` | `px4_sitl_default` | byggemålet i PX4 |
-| `PX4_AIRFRAME` | `10040` | `sihsim_quadx`. `10016` (`none_iris`) henger ved oppstart, se [docs/px4.md](docs/px4.md) |
+| `PX4_AIRFRAME` | `10016` | `none_iris`: PX4 får sensordata og klokke fra simulatoren. `10040` = `sihsim_quadx` (PX4 simulerer et quadkopter selv) |
 
 PX4-konsollen (`pxh>`) nås med `docker attach repo-klon-px4-1`. Ctrl-P Ctrl-Q går ut uten å stoppe PX4. Stopp alt med `docker compose down`.
 

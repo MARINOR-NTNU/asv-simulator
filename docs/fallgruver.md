@@ -26,7 +26,9 @@
 - PX4 publiserer best effort, så abonnementer på `/fmu/out/...` må bruke `qos_profile_sensor_data`.
 
 ## PX4 i containeren
-- `none_iris` (`PX4_SYS_AUTOSTART=10016`) henger ved oppstart og venter på en simulator på TCP 4560. Da startes aldri `uxrce_dds_client`. Bruk `sihsim_quadx` (10040) til control har et bygg uten `simulator_mavlink`.
+- `none_iris` (`PX4_SYS_AUTOSTART=10016`) henger ved oppstart til noe kobler seg til TCP 4560. Det gjør `px4_hil_bridge`, som starter med `control:=px4`. Uten den startes aldri `uxrce_dds_client`.
+- Med Gazebo skriver PX4 `poll timeout` hvert sekund mens verdenen lastes, fordi det ikke kommer IMU ennå. Det stopper av seg selv.
+- `px4_hil_bridge` sender sensordata med simuleringstiden. Startes simulatoren på nytt mens PX4 kjører, går tiden bakover, og da må PX4 også startes på nytt.
 - Monter hele repoet i PX4-containeren, ikke bare submodulen. Submodulens `.git` er en fil som peker til `../../.git/modules/`, og PX4 trenger git under bygget.
 - Kjør PX4-containeren som brukeren (`--user`), ellers eies `build/` og `.git/modules/` av root.
 - PX4 sine egne submoduler hentes av bygget selv. Ikke bruk `git submodule update --recursive`, det henter NuttX og mye annet vi ikke trenger.

@@ -26,7 +26,7 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
 - Control sier (2026-10-19) at alt skal samles på `main`, men vet at koden er spredt nå. Feature-grener kan testes med `PX4_BRANCH=<gren> scripts/sync_px4_msgs.sh` (se px4_msgs under).
 - Control startet først PX4 med `make px4_sitl_sih sihsim_quadx` (2026-10-19), altså SITL med PX4 sin innebygde simulator (SIH) som simulerer et quadkopter.
 - Nå sier de `make px4_sitl_proteus none_iris` (2026-10-20): PX4 uten mikrokontroller og uten fysikkmotor. Det passer med at VRX er fysikken, og det fjerner quadkopteret fra SIH. Per 2026-10-20 finnes ikke `px4_sitl_proteus` på GitHub. Grenen `feature/control/proteus_board` har bare `boards/px4/fmu-v6c/proteus.px4board`, som er et bygg for Pixhawk-kortet (`make px4_fmu-v6c_proteus upload`). Det har ingen av modulene til control (`switch_motor_output`, `seapath`, `thrust_allocator`, `transit_controller`), men PX4 sine quadkopter-regulatorer og EKF2.
-- `none_iris` er airframe-fila `10016_none_iris`. Da starter `px4-rc.simulator` modulen `simulator_mavlink`, som venter på en simulator over MAVLink på TCP 4560. Testet 2026-10-20 (`px4_sitl_default`): oppstartsskriptet stopper der («Waiting for simulator to accept connection on TCP port 4560»), så verken `uxrce_dds_client` eller noen andre moduler etter den linja startes. PX4 kobler seg aldri til agenten. `none_iris` kan altså ikke brukes uten en simulator på TCP 4560, uansett lockstep.
+- `none_iris` er airframe-fila `10016_none_iris`. Da starter `px4-rc.simulator` modulen `simulator_mavlink`, som venter på en simulator over MAVLink på TCP 4560. Uten en simulator der stopper oppstartsskriptet («Waiting for simulator to accept connection on TCP port 4560»), og verken `uxrce_dds_client` eller noen andre moduler etter den linja startes (testet 2026-10-20). Control fant det samme. Løst 2026-10-26 med `px4_hil_bridge` (se under).
 - Per 2026-10-19 er ingen av de to SITL-byggene komplette: `sih.px4board` har `switch_wrench`, `thrust_allocator` og `transit_controller` (grenen `thrust_allocator`), og `default.px4board` har `seapath` (grenen `seapathDriver`). `switch_motor_output` og `motor_writer` er bare slått på i `boards/px4/fmu-v6c`, og `switch_motor_output start` står bare i `rc.board_defaults` der. I SITL sender PX4 derfor ingen MotorOutput.
 - I SITL kobler PX4 seg til agenten på 127.0.0.1:8888 (`UXRCE_DDS_AG_IP` i `init.d-posix/rcS`). Agenten kjører i vår container, så control sin container må kjøre med `--net=host`, eller så må `UXRCE_DDS_AG_IP` settes til IP-en vår (`param set`, ingen kodeendring).
 - Motor-committen deres endrer `boards/px4/fmu-v6c`, så kortet er trolig en Pixhawk 6C (ikke bekreftet).
@@ -44,6 +44,18 @@ Testet 2026-10-20 med `sim:=fast`:
 - `seapathDriver` (`5df9df6e63`) kompilerer. Med `sihsim_quadx` (`PX4_SYS_AUTOSTART=10040`) kobler PX4 seg til agenten med en gang, og 69 `/fmu`-topics fra PX4 vises i ROS 2. `motor_output` og `seapath_data` mangler, fordi den grenen ikke har dem i `dds_topics.yaml`. Samme resultat med `docker compose up`.
 - Med `none_iris` henger PX4 ved oppstart (se over).
 - Agenten (v2.4.2, Humble) gir PX4 sine forbindelser nodenavnet `_CREATED_BY_BARE_DDS_APP_`. `px4_check` så etter `_NODE_NAME_UNKNOWN_` og sa feilaktig at PX4 ikke var koblet til. Rettet.
+
+## MAVLink-koblingen: `px4_hil_bridge`
+Avtalt med control 2026-10-26: motorkommandoene kommer fortsatt som `MotorOutput` via agenten. MAVLink brukes bare til å gi PX4 sensordata og klokke, så PX4 starter med `none_iris`.
+- PX4 (`simulator_mavlink`) kobler seg til simulatoren som TCP-klient (`connect()`), så `px4_hil_bridge` lytter på TCP 4560.
+- For hver IMU-melding sendes `HIL_SENSOR` (akselerometer, gyro, kompass, barometer, trykkhøyde og temperatur, ikke airspeed). For hver GPS-melding sendes `HIL_GPS`. Alt regnes om fra ENU/FLU til NED/FRD.
+- Kompasset regnes ut fra båtens orientering og et fast magnetfelt (`mag_ned` i `config/px4_bridge.yaml`, satt for sydney_regatta). PX4 sammenligner det med sin modell for GPS-posisjonen, så det må endres hvis verdenen flyttes.
+- Barometeret er standardatmosfæren ved GPS-høyden.
+- Tidsstempelet er simuleringstiden. I lockstep går PX4 sin klokke bare når det kommer `HIL_SENSOR`, så PX4 følger simulatorens klokke, også når den går saktere eller fortere enn sanntid.
+- Det PX4 sender tilbake (`HEARTBEAT`, `HIL_ACTUATOR_CONTROLS`), leses og kastes.
+- PX4 forventer IMU på ca. 250 Hz (`IMU_INTEG_RATE`). Vår IMU går på 100 Hz (Gazebo og 2D-simulatoren), og det går fint.
+
+Testet 2026-10-26 med `seapathDriver` og `none_iris`, både med `sim:=fast` og med Gazebo uten vindu: PX4 starter helt, kobler seg til agenten (69 topics), PX4 sin tid følger `/clock` (56,96 s mot 56 s), `sensor_combined` viser -9,81 i z, GPS har fix 3 og riktig posisjon, kompasset stemmer med heading, og EKF2 lager `vehicle_global_position`. Med Gazebo skriver PX4 `poll timeout` mens verdenen lastes (før det kommer IMU), og det stopper når Gazebo er i gang.
 
 ## Meldingene
 - `MotorOutput`: `forward_propeller_thrust`, `port_side_thrust`, `port_side_angle`, `starboard_thrust`, `starboard_angle`.
@@ -108,5 +120,5 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten for
 ## Venter på svar fra control
 - `dds_topics.yaml` på `proteus_board`: `motor_output` og `seapath_data` er lagt inn (2026-10-20), men `MotorOutput.msg` mangler på grenen, så den kompilerer ikke. De må merge inn `feature/control/motor_output_and_switch`.
 - At `switch_motor_output` (og resten av kjeden) er slått på og startes i SITL-bygget.
-- Hvilket SITL-bygg og hvilken airframe som skal brukes. `px4_sitl_proteus` finnes ikke på GitHub, og `none_iris` henger ved oppstart. Foreløpig bruker vi `px4_sitl_default` med `sihsim_quadx`.
+- Hvilket SITL-bygg som skal brukes. `px4_sitl_proteus` finnes ikke på GitHub, så vi bruker `px4_sitl_default` med `none_iris`.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.

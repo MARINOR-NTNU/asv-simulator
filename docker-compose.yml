@@ -46,7 +46,8 @@ services:
     # PX4-konsollen (pxh>) nås med docker attach. Ctrl-P Ctrl-Q går ut uten å stoppe PX4.
     stdin_open: true
     tty: true
-    # PX4_AIRFRAME: 10040 = sihsim_quadx. 10016 = none_iris henger ved oppstart (venter på TCP 4560).
+    # PX4_AIRFRAME: 10016 = none_iris, som får sensordata og klokke fra px4_hil_bridge i vrx (TCP 4560).
+    # 10040 = sihsim_quadx, der PX4 simulerer et quadkopter selv.
     command:
       - bash
       - -c
@@ -54,4 +55,4 @@ services:
         mkdir -p $$HOME &&
         make ${PX4_TARGET:-px4_sitl_default} j=1 &&
         cd build/${PX4_TARGET:-px4_sitl_default}/rootfs &&
-        PX4_SYS_AUTOSTART=${PX4_AIRFRAME:-10040} ../bin/px4
+        PX4_SYS_AUTOSTART=${PX4_AIRFRAME:-10016} ../bin/px4

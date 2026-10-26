@@ -45,6 +45,9 @@ COPY px4_msgs /root/vrx_ws/src/px4_msgs
 RUN . /opt/ros/humble/setup.sh \
  && MAKEFLAGS="-j1" colcon build --merge-install --executor sequential --parallel-workers 1 --packages-select px4_msgs
 
+# pymavlink for px4_hil_bridge (MAVLink-sensordata til PX4). Samme versjon som i Dockerfile.px4.
+RUN pip3 install --no-cache-dir pymavlink==2.4.50
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
