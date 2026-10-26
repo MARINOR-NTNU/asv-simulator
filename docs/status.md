@@ -1,6 +1,6 @@
 # Status
 
-Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
+Sist oppdatert 2026-10-26. PX4-koblingen har sin egen side: [px4.md](px4.md).
 
 ## Simulatoren
 - Gruppen har valgt å fortsette i VRX (2026-10-12). `config/unity.yaml` er en mal med plassholdere og er ikke testet.
