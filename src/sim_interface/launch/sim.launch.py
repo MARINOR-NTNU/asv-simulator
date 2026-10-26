@@ -47,8 +47,8 @@ def generate_launch_description():
             'world', default_value='open_water', choices=['open_water', 'sydney_regatta'],
             description='sim:=vrx_asv: åpent hav uten land, eller VRX sin sydney_regatta'),
         DeclareLaunchArgument(
-            'scenario', default_value='',
-            description='sim:=vrx_asv: scenario fra asv_gazebo/scenarios/, f.eks. slalom. Tom = ingen'),
+            'scenario', default_value='none',
+            description='sim:=vrx_asv: scenario fra asv_gazebo/scenarios/, f.eks. slalom. none = ingen'),
         DeclareLaunchArgument('control', default_value='none', choices=['none', 'stub', 'px4']),
         DeclareLaunchArgument('autonomy', default_value='none', choices=['none', 'fake', 'path']),
         DeclareLaunchArgument('heading', default_value='0.0', description='autonomy:=fake, radianer ENU'),
@@ -66,7 +66,7 @@ def generate_launch_description():
         include('asv_gazebo', 'scenario.launch.py',
                 {'scenario': arg('scenario'), 'world': arg('world')},
                 IfCondition(PythonExpression(
-                    ["'", arg('scenario'), "' != '' and '", arg('sim'), "' == 'vrx_asv'"]))),
+                    ["'", arg('scenario'), "' not in ('', 'none') and '", arg('sim'), "' == 'vrx_asv'"]))),
         include('vrx_gz', 'competition.launch.py',
                 {'world': 'sydney_regatta', 'headless': arg('headless')}, when('sim', 'vrx')),
 

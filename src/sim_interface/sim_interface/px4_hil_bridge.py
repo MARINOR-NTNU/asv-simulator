@@ -4,12 +4,17 @@ Med none_iris venter PX4 ved oppstart på en simulator på TCP 4560, og i lockst
 bare når den får HIL_SENSOR. Tidsstempelet er simuleringstiden, så PX4 følger simulatorens klokke.
 Motorkommandoene kommer ikke herfra, men som MotorOutput via agenten (px4_motor_bridge).
 Det PX4 sender tilbake (HEARTBEAT, HIL_ACTUATOR_CONTROLS), leses og kastes.
+
+Valgfritt kan noden late som den er en RC-sender (fjernkontroll): rc_channels er pulsbredder i µs
+per kanal, sendt som RC_CHANNELS, som PX4 gjør om til input_rc. Tom liste = ingen RC (standard).
+Kan endres mens noden kjører: ros2 param set /px4_hil_bridge rc_channels "[1500, 1500, ...]"
 """
 import math
 import socket
 
 import rclpy
 from pymavlink.dialects.v20 import common as mavlink
+from rcl_interfaces.msg import SetParametersResult
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -42,6 +47,9 @@ class Px4HilBridge(Node):
         self.mag_ned = self.declare_parameter('mag_ned', [0.244, 0.054, -0.512]).value
         # Tidskonstant for glatting av farten fra GPS (sekunder), som i px4_seapath_bridge.
         self.tau = self.declare_parameter('tau', 0.5).value
+        # Virtuell RC-sender: pulsbredde i µs per kanal (opptil 18). Tom = ingen RC.
+        self.rc_channels = list(self.declare_parameter('rc_channels', [0]).value)
+        self.add_on_set_parameters_callback(self.on_parameters)
 
         self.mav = mavlink.MAVLink(None, srcSystem=1, srcComponent=1)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,6 +69,22 @@ class Px4HilBridge(Node):
             NavSatFix, '/autonomy/gps/fix', self.on_gps, qos_profile_sensor_data)
         self.create_timer(0.02, self.poll)
         self.get_logger().info(f'Venter på at PX4 kobler seg til på TCP {port}.')
+
+    def on_parameters(self, params):
+        for param in params:
+            if param.name == 'rc_channels':
+                self.rc_channels = list(param.value)
+                self.get_logger().info(f'RC-kanaler: {self.rc_channels}')
+        return SetParametersResult(successful=True)
+
+    def send_rc(self):
+        # [0] eller tom betyr ingen RC. Kanaler som ikke brukes, er 65535 (ubrukt i MAVLink).
+        channels = [int(c) for c in self.rc_channels if c > 0][:18]
+        if not channels:
+            return
+        raw = channels + [65535] * (18 - len(channels))
+        self.send(self.mav.rc_channels_encode(
+            self.last_sensor_us // 1000, len(channels), *raw, 255))
 
     def poll(self):
         if self.client is None:
@@ -83,6 +107,8 @@ class Px4HilBridge(Node):
             pass
         except OSError:
             self.disconnect()
+            return
+        self.send_rc()
 
     def disconnect(self):
         if self.client is not None:

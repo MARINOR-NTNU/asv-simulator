@@ -28,7 +28,7 @@ services:
         --packages-select asv_gazebo sim_interface &&
         source install/setup.bash &&
         ros2 launch sim_interface sim.launch.py control:=px4
-        sim:=${SIM:-vrx_asv} world:=${WORLD:-open_water} scenario:=${SCENARIO:-} headless:=${HEADLESS:-false}
+        sim:=${SIM:-vrx_asv} world:=${WORLD:-open_water} scenario:=${SCENARIO:-none} headless:=${HEADLESS:-false}
         forward_thruster:=${FORWARD_THRUSTER:-bow}
 
   px4:

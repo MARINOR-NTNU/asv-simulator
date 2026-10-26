@@ -44,7 +44,7 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `stub_controller` | Midlertidig erstatning for control: P-regulator fra heading-feil til thrust. |
 | `px4_motor_bridge` | Erstatter `motor_writer` i PX4: `MotorOutput` fra PX4 → `/control/thruster/...`. Se «Kjøre control sin PX4 mot simulatoren». |
 | `px4_seapath_bridge` | Erstatter `seapath`-driveren i PX4: IMU og GPS → `SeapathData` til PX4. |
-| `px4_hil_bridge` | Er simulatoren PX4 venter på i SITL: IMU og GPS → `HIL_SENSOR` og `HIL_GPS` over MAVLink (TCP 4560), med simuleringstiden som klokke. |
+| `px4_hil_bridge` | Er simulatoren PX4 venter på i SITL: IMU og GPS → `HIL_SENSOR` og `HIL_GPS` over MAVLink (TCP 4560), med simuleringstiden som klokke. Kan også late som den er en RC-sender (`rc_channels`). |
 
 ### Faste topics
 | Topic | Type | Enhet |

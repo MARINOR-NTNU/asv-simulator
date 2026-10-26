@@ -53,6 +53,14 @@ Control har laget `feature/control/sitl_proteus` med `boards/px4/sitl/proteus.px
 - `CMakeLists.txt` (linje 113) kopierer `custom.xml` inn i `src/modules/mavlink/mavlink/` når cmake kjører. På en ny kopi skjer det før PX4 henter MAVLink-submodulen, så hentingen feiler («already exists and is not an empty directory»). Compose henter derfor MAVLink-submodulen før `make`. Samme kopiering gjør at submodulen ser endret ut etter bygget, så `.gitmodules` har `ignore = untracked`.
 - Mulig løsning på RC-problemet uten å endre koden deres: `px4_hil_bridge` kan sende RC-verdier over MAVLink (som en RC-sender). Ikke sjekket om `simulator_mavlink` gjør dem om til `input_rc`.
 
+## Hele veien fra PX4 til motorene (testet 2026-10-26)
+Med `sitl_proteus` og Gazebo, uten å endre koden til control:
+- `switch_motor_output` og `rcPublisher` startes for hånd (`../bin/px4-switch_motor_output start`, `../bin/px4-rcPublisher start` i `build/px4_sitl_proteus/rootfs`), fordi SITL-bygget ikke starter dem.
+- `px4_hil_bridge` sender RC som `RC_CHANNELS` (parameteren `rc_channels`), og `simulator_mavlink` gjør det om til `input_rc`. Kanalene hos control: 0 baug, 1 babord, 2 styrbord, 3 vinkel (felles), 6 (SC) modus, 7 (SD) manuell. SD ≥ 1500 og SC 1550–2100 gir direkte motorstyring (modus 7).
+- Resultat: `input_rc` → `rc_control_mode` (modus 7) → `motor_output` → `/fmu/out/motor_output` (50 Hz) → `px4_motor_bridge` → `/control/thruster/...`. Hele kjeden virker.
+- **`switch_motor_output` sender rå RC-verdier (ca. 1000–2000 µs) som `MotorOutput`**, både for thrust og vinkel, ikke -100..100 % og radianer som avtalt. Med vår standardskala blir 1700 µs 850 N (begrenset til 50 N) og vinkelen «1500 rad» (full utslag), og båten snurrer rundt. Omregningen må gjøres hos control.
+- Med en midlertidig omregning i broen (1500 µs = 0, ±500 µs = full kraft eller ±90°) oppfører båten seg riktig: 1700 µs på begge gir 20 N og stabil fart 1,62 m/s forover, og bare babord motor svinger båten med klokka (mot styrbord), som kontrakten sier.
+
 ## MAVLink-koblingen: `px4_hil_bridge`
 Avtalt med control 2026-10-26: motorkommandoene kommer fortsatt som `MotorOutput` via agenten. MAVLink brukes bare til å gi PX4 sensordata og klokke, så PX4 starter med `none_iris`.
 - PX4 (`simulator_mavlink`) kobler seg til simulatoren som TCP-klient (`connect()`), så `px4_hil_bridge` lytter på TCP 4560.
@@ -124,6 +132,7 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10
 
 ## Venter på svar fra control
 - At `switch_motor_output` (og `rcPublisher`, `motor_writer`) startes i SITL. De er bygget inn i `px4_sitl_proteus`, men startes ikke.
-- Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren.
+- Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren (`rc_channels` i `px4_hil_bridge` virker).
+- At `switch_motor_output` gjør RC-verdiene (µs) om til -100..100 % og radianer før de sendes som `MotorOutput`.
 - At kopieringen av `custom.xml` i `CMakeLists.txt` skjer etter at MAVLink-submodulen er hentet, så en ny kopi bygger uten triks.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.
