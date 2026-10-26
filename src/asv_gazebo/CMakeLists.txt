@@ -5,8 +5,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 find_program(XACRO xacro REQUIRED)
 
-# model.sdf lages fra model.sdf.xacro og filene i xacro/. Gazebo og asv_fastsim leser den
-# installerte model.sdf.
+# model.sdf lages fra model.sdf.xacro og filene i xacro/. Gazebo leser den installerte model.sdf.
 set(MODEL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/models/asv)
 file(GLOB MODEL_XACRO ${MODEL_DIR}/model.sdf.xacro ${MODEL_DIR}/xacro/*.xacro)
 add_custom_command(

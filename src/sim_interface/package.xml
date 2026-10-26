@@ -12,7 +12,6 @@
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>px4_msgs</exec_depend>
   <exec_depend>asv_gazebo</exec_depend>
-  <exec_depend>asv_fastsim</exec_depend>
   <exec_depend>rosidl_runtime_py</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>

@@ -61,7 +61,7 @@ Avtalt med control 2026-10-26: motorkommandoene kommer fortsatt som `MotorOutput
 - Barometeret er standardatmosfæren ved GPS-høyden.
 - Tidsstempelet er simuleringstiden. I lockstep går PX4 sin klokke bare når det kommer `HIL_SENSOR`, så PX4 følger simulatorens klokke, også når den går saktere eller fortere enn sanntid.
 - Det PX4 sender tilbake (`HEARTBEAT`, `HIL_ACTUATOR_CONTROLS`), leses og kastes.
-- PX4 forventer IMU på ca. 250 Hz (`IMU_INTEG_RATE`). Vår IMU går på 100 Hz (Gazebo og 2D-simulatoren), og det går fint.
+- PX4 forventer IMU på ca. 250 Hz (`IMU_INTEG_RATE`). Vår IMU i Gazebo går på 100 Hz, og det går fint.
 
 Testet 2026-10-26 med `seapathDriver` og `none_iris`, både med `sim:=fast` og med Gazebo uten vindu: PX4 starter helt, kobler seg til agenten (69 topics), PX4 sin tid følger `/clock` (56,96 s mot 56 s), `sensor_combined` viser -9,81 i z, GPS har fix 3 og riktig posisjon, kompasset stemmer med heading, og EKF2 lager `vehicle_global_position`. Med Gazebo skriver PX4 `poll timeout` mens verdenen lastes (før det kommer IMU), og det stopper når Gazebo er i gang.
 
@@ -109,10 +109,7 @@ Testet 2026-10-26 med `seapathDriver` og `none_iris`, både med `sim:=fast` og m
 Control sin kjede starter med `CCommand`, som på båten kommer over MAVLink fra companion-maskinen. Når autonomy-noden og mottakeren hos control finnes, trengs en bro fra `/autonomy/desired/{heading,speed}` til `CCommand`. Da kan autonomy-noden kjøre uendret mot både `control:=stub` og `control:=px4`. Om broen skal gå over MAVLink eller XRCE-DDS, er ikke avklart.
 
 ## Klokka
-Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten forskjell betyr det lite, men skal simulatoren gå fortere enn sanntid, må PX4 sin klokke også gå fortere.
-- Gazebo med vår båt går på 0,99 av sanntid, så sanntid holder der.
-- For å kjøre fortere er det enkleste trolig `sim:=fast` på N ganger sanntid og PX4 med `PX4_SIM_SPEED_FACTOR=N`. Da går de like fort, men er ikke låst sammen, så det glir hvis en av dem henger etter. Ikke testet med SIH.
-- Ekte lockstep krever at PX4 tar tiden sin fra simulatoren. Med `none_iris` kunne vi i prinsippet koblet oss til `simulator_mavlink` på TCP 4560 og sendt sensordata med simuleringstid, men da simulerer vi sensorene inne i PX4 i tillegg til SeapathData. Det er ikke valgt.
+Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10-26: med `none_iris` får PX4 tiden sin fra `HIL_SENSOR` som `px4_hil_bridge` sender med simuleringstiden (lockstep). PX4 følger derfor simulatoren også når den går saktere eller fortere enn sanntid. Gazebo med vår båt går på 0,99 av sanntid.
 
 ## Svar fra control 2026-10-19
 - Gren: skal være `main`, men koden er spredt nå.

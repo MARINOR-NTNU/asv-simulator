@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  Alle tallene i båtmodellen som skal byttes ut med ekte verdier. Endres de, må Gazebo og
-  asv_fastsim fortsatt gi de samme resultatene (asv_fastsim leser den genererte model.sdf).
+  Alle tallene i båtmodellen som skal byttes ut med ekte verdier.
 
   Koordinater: origo midt i lengden, x forover, y mot babord, z opp. Målt fra STL-filen:
   lengde 1,50 m, bredde 0,53 m, kjøl ved z = -0,25, dekk ved z = ca. 0,12.

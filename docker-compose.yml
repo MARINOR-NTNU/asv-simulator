@@ -1,7 +1,7 @@
 # Starter simulatoren og control sin PX4 sammen, i hver sin container:
 #   docker compose up
 # Valg settes som miljøvariabler, f.eks.:
-#   SIM=fast HEADLESS=true docker compose up
+#   HEADLESS=true docker compose up
 #   PX4_SRC=~/Flightcontroller-px4 docker compose up   # PX4 fra en egen kopi i stedet for submodulen
 # Begge bruker host-nettverk, så PX4 finner agenten i vrx på 127.0.0.1:8888.
 # For Gazebo-vindu må xhost +local:docker kjøres på verten først.
@@ -25,7 +25,7 @@ services:
       - >-
         cd /root/vrx_ws &&
         MAKEFLAGS=-j1 colcon build --merge-install --executor sequential --parallel-workers 1
-        --packages-select asv_gazebo asv_fastsim sim_interface &&
+        --packages-select asv_gazebo sim_interface &&
         source install/setup.bash &&
         ros2 launch sim_interface sim.launch.py control:=px4
         sim:=${SIM:-vrx_asv} world:=${WORLD:-open_water} scenario:=${SCENARIO:-} headless:=${HEADLESS:-false}

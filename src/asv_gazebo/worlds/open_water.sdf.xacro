@@ -4,7 +4,7 @@
   lages fra denne fila når asv_gazebo bygges. Bøyer og andre ting settes inn etterpå.
 
   Båten starter i origo. GPS-origo er stedet båten startet i sydney_regatta, så GPS, kompasset
-  i px4_hil_bridge (mag_ned), asv_fastsim og baner med fast origin stemmer med begge verdenene.
+  i px4_hil_bridge (mag_ned) og baner med fast origin stemmer med begge verdenene.
 -->
 <sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
 

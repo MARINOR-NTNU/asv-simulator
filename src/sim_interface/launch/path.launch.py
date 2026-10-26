@@ -13,7 +13,7 @@ def generate_launch_description():
     path = PathJoinSubstitution([share, 'config', [LaunchConfiguration('path'), '.yaml']])
 
     return LaunchDescription([
-        DeclareLaunchArgument('sim', default_value='vrx', choices=['vrx', 'vrx_asv', 'fast', 'unity']),
+        DeclareLaunchArgument('sim', default_value='vrx', choices=['vrx', 'vrx_asv', 'unity']),
         DeclareLaunchArgument('path', default_value='path_demo'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(

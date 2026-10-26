@@ -1,6 +1,6 @@
 """Starter simulatoren og grensesnittet, med valg for hva som står for autonomy og control.
 
-  sim:=vrx_asv | vrx | fast     vår båt (standard), WAM-V, eller vår båt i den raske 2D-simulatoren
+  sim:=vrx_asv | vrx            vår båt (standard) eller WAM-V
   world:=open_water | sydney_regatta   verdenen til vår båt i Gazebo (sim:=vrx_asv)
   scenario:=<navn>              ting som settes inn i verdenen, fra asv_gazebo/scenarios/ (sim:=vrx_asv)
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
@@ -41,10 +41,7 @@ def generate_launch_description():
     sim_time = {'use_sim_time': True}
 
     return LaunchDescription([
-        DeclareLaunchArgument('sim', default_value='vrx_asv', choices=['vrx_asv', 'vrx', 'fast']),
-        DeclareLaunchArgument(
-            'real_time_factor', default_value='1.0',
-            description='sim:=fast: 1 = sanntid, 10 = ti ganger raskere, 0 = så fort det går'),
+        DeclareLaunchArgument('sim', default_value='vrx_asv', choices=['vrx_asv', 'vrx']),
         DeclareLaunchArgument('headless', default_value='false', description='true = uten Gazebo-vindu'),
         DeclareLaunchArgument(
             'world', default_value='open_water', choices=['open_water', 'sydney_regatta'],
@@ -72,9 +69,6 @@ def generate_launch_description():
                     ["'", arg('scenario'), "' != '' and '", arg('sim'), "' == 'vrx_asv'"]))),
         include('vrx_gz', 'competition.launch.py',
                 {'world': 'sydney_regatta', 'headless': arg('headless')}, when('sim', 'vrx')),
-        # Den raske simulatoren er klokka selv, så den kjører ikke med use_sim_time.
-        Node(package='asv_fastsim', executable='fastsim', condition=when('sim', 'fast'),
-             parameters=[{'real_time_factor': number('real_time_factor')}]),
 
         # Grensesnittet (thruster_adapter, sensor_relay, heading_node, speed_node)
         include('sim_interface', 'sim_interface.launch.py', {'sim': arg('sim')}),
