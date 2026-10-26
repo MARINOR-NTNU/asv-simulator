@@ -2,6 +2,7 @@
 #   docker compose up
 # Valg settes som miljøvariabler, f.eks.:
 #   SIM=fast HEADLESS=true docker compose up
+#   PX4_SRC=~/Flightcontroller-px4 docker compose up   # PX4 fra en egen kopi i stedet for submodulen
 # Begge bruker host-nettverk, så PX4 finner agenten i vrx på 127.0.0.1:8888.
 # For Gazebo-vindu må xhost +local:docker kjøres på verten først.
 
@@ -35,17 +36,23 @@ services:
       context: .
       dockerfile: Dockerfile.px4
     network_mode: host
-    # Som brukeren på verten, så filene i px4/Flightcontroller-px4/build ikke eies av root.
+    # Som brukeren på verten, så byggefilene ikke eies av root. Har brukeren en annen id enn 1000:
+    # UID=$(id -u) GID=$(id -g) docker compose up
     user: "${UID:-1000}:${GID:-1000}"
     environment:
       - HOME=/tmp/home
-    # Hele repoet, fordi submodulens .git peker til ../../.git/modules/.
+    # Hele repoet, fordi submodulens .git peker til ../../.git/modules/. PX4_SRC legges oppå
+    # submodulens plass, så control kan bygge og teste fra sin egen kopi (egen gren, ucommittede
+    # endringer) uten å endre submodulen. Uten PX4_SRC monteres submodulen på seg selv.
     volumes:
       - .:/repo
+      - ${PX4_SRC:-./px4/Flightcontroller-px4}:/repo/px4/Flightcontroller-px4
     working_dir: /repo/px4/Flightcontroller-px4
     # PX4-konsollen (pxh>) nås med docker attach. Ctrl-P Ctrl-Q går ut uten å stoppe PX4.
     stdin_open: true
     tty: true
+    # MAVLink-biblioteket hentes før make: CMakeLists.txt i sitl_proteus kopierer custom.xml inn i
+    # mappa før PX4 henter biblioteket, og da feiler hentingen på en ny kopi.
     # PX4_AIRFRAME: 10016 = none_iris, som får sensordata og klokke fra px4_hil_bridge i vrx (TCP 4560).
     # 10040 = sihsim_quadx, der PX4 simulerer et quadkopter selv.
     command:
@@ -53,6 +60,7 @@ services:
       - -c
       - >-
         mkdir -p $$HOME &&
-        make ${PX4_TARGET:-px4_sitl_default} j=1 &&
-        cd build/${PX4_TARGET:-px4_sitl_default}/rootfs &&
+        git submodule update --init src/modules/mavlink/mavlink &&
+        make ${PX4_TARGET:-px4_sitl_proteus} j=1 &&
+        cd build/${PX4_TARGET:-px4_sitl_proteus}/rootfs &&
         PX4_SYS_AUTOSTART=${PX4_AIRFRAME:-10016} ../bin/px4

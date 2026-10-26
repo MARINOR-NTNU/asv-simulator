@@ -31,5 +31,7 @@
 - `px4_hil_bridge` sender sensordata med simuleringstiden. Startes simulatoren på nytt mens PX4 kjører, går tiden bakover, og da må PX4 også startes på nytt.
 - Monter hele repoet i PX4-containeren, ikke bare submodulen. Submodulens `.git` er en fil som peker til `../../.git/modules/`, og PX4 trenger git under bygget.
 - Kjør PX4-containeren som brukeren (`--user`), ellers eies `build/` og `.git/modules/` av root.
+- På `sitl_proteus` kopierer cmake `custom.xml` inn i `src/modules/mavlink/mavlink/` før MAVLink-submodulen er hentet. Compose henter den før `make`, men har noen bygget uten compose og fått «already exists and is not an empty directory», må `src/modules/mavlink/mavlink/message_definitions/` slettes for hånd før neste forsøk.
+- Etter at submodulen er flyttet til en ny commit, bygger PX4 på nytt ved neste `docker compose up`, så det tar lenger tid før PX4 starter.
 - PX4 sine egne submoduler hentes av bygget selv. Ikke bruk `git submodule update --recursive`, det henter NuttX og mye annet vi ikke trenger.
 - Agenten viser PX4 sine forbindelser som `_CREATED_BY_BARE_DDS_APP_` i ROS 2, ikke som en node.

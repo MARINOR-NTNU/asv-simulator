@@ -168,7 +168,7 @@ PX4 og simulatoren kjører i hver sin container, begge startet fra dette repoet.
 ```bash
 git submodule update --init px4/Flightcontroller-px4
 ```
-Ikke bruk `--recursive`. PX4 henter selv de av sine egne submoduler bygget trenger. Submodulen peker på én commit på grenen `feature/control/proteus_board`. Nyeste commit på grenen hentes med `git submodule update --remote px4/Flightcontroller-px4`.
+Ikke bruk `--recursive`. PX4 henter selv de av sine egne submoduler bygget trenger. Submodulen peker på én commit på grenen `feature/control/sitl_proteus`, der control har laget SITL-bygget for simulering (`px4_sitl_proteus`). Når den er merget inn i `main`, bytter vi til `main`. Nyeste commit på grenen hentes med `git submodule update --remote px4/Flightcontroller-px4`, men vi flytter bare pekeren til en commit som har bestått `px4_check`. Etter at pekeren er flyttet, bygger PX4 på nytt ved neste start.
 
 **2. Bygg imagene** (VRX-imaget som under «Bygg», PX4-imaget tar noen minutter):
 ```bash
@@ -190,8 +190,12 @@ SIM=fast HEADLESS=true docker compose up     # 2D-simulatoren i stedet, uten vin
 | `SIM` | `vrx_asv` | `vrx_asv`, `vrx` eller `fast`, som i `sim.launch.py` |
 | `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
 | `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
-| `PX4_TARGET` | `px4_sitl_default` | byggemålet i PX4 |
+| `PX4_TARGET` | `px4_sitl_proteus` | byggemålet i PX4 (control sitt SITL-bygg med modulene deres) |
+| `PX4_SRC` | submodulen | mappe med en egen kopi av PX4-koden. PX4 bygges og kjøres derfra, med den grenen og de endringene som er der, også ucommittede |
+| `UID`, `GID` | `1000` | brukeren PX4 kjører som. Sett `UID=$(id -u) GID=$(id -g)` hvis brukeren din har en annen id |
 | `PX4_AIRFRAME` | `10016` | `none_iris`: PX4 får sensordata og klokke fra simulatoren. `10040` = `sihsim_quadx` (PX4 simulerer et quadkopter selv) |
+
+**For control:** test egne endringer uten å pushe med `PX4_SRC=~/Flightcontroller-px4 docker compose up` (stien til deres egen kopi). Submodulen i repoet endres ikke, så alle andre tester fortsatt den faste versjonen.
 
 PX4-konsollen (`pxh>`) nås med `docker attach repo-klon-px4-1`. Ctrl-P Ctrl-Q går ut uten å stoppe PX4. Stopp alt med `docker compose down`.
 

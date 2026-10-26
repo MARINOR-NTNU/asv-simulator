@@ -33,7 +33,7 @@ Simulatoren erstatter `seapath`-driveren og `motor_writer` i PX4, så regulatore
 
 ## PX4 i vår egen container (fra 2026-10-20)
 Bestemt 2026-10-20: control sin PX4-kode kjøres som SITL fra vårt repo, i en egen container ved siden av VRX-containeren. Agenten blir i VRX-containeren. Oppskriften står i README under «Kjøre control sin PX4 mot simulatoren».
-- Koden ligger som submodule i `px4/Flightcontroller-px4`, låst til én commit på `feature/control/proteus_board`. Vi endrer ikke koden der, men kan sjekke ut andre commits lokalt for å teste.
+- Koden ligger som submodule i `px4/Flightcontroller-px4`, låst til én commit på `feature/control/sitl_proteus` (fra 2026-10-26, før det `proteus_board`). Vi endrer ikke koden der, men kan sjekke ut andre commits lokalt for å teste. Med `PX4_SRC` kan control bygge fra sin egen kopi i stedet.
 - `Dockerfile.px4` gir imaget `px4-sitl:proteus` med bare verktøykjeden. Koden monteres inn og bygges i containeren. Hele repoet monteres, fordi submodulens `.git` peker til `../../.git/modules/`.
 - `docker-compose.yml` starter `vrx` og `px4` med host-nettverk, så PX4 finner agenten på 127.0.0.1:8888. PX4 kjører som brukeren på verten, så byggefilene ikke eies av root.
 - `.dockerignore` holder submodulen (flere GB) utenfor byggekonteksten til begge imagene.
@@ -44,6 +44,14 @@ Testet 2026-10-20 med `sim:=fast`:
 - `seapathDriver` (`5df9df6e63`) kompilerer. Med `sihsim_quadx` (`PX4_SYS_AUTOSTART=10040`) kobler PX4 seg til agenten med en gang, og 69 `/fmu`-topics fra PX4 vises i ROS 2. `motor_output` og `seapath_data` mangler, fordi den grenen ikke har dem i `dds_topics.yaml`. Samme resultat med `docker compose up`.
 - Med `none_iris` henger PX4 ved oppstart (se over).
 - Agenten (v2.4.2, Humble) gir PX4 sine forbindelser nodenavnet `_CREATED_BY_BARE_DDS_APP_`. `px4_check` så etter `_NODE_NAME_UNKNOWN_` og sa feilaktig at PX4 ikke var koblet til. Rettet.
+
+## `sitl_proteus` (testet 2026-10-26)
+Control har laget `feature/control/sitl_proteus` med `boards/px4/sitl/proteus.px4board` («headless og fysikkløs sitl simulering»), basert på `main`, der `proteus_board` og `motor_output_and_switch` er merget inn (21. oktober). README-en deres anbefaler `make px4_sitl_proteus none_iris` til egen simulering. Submodulen peker nå dit (`70b86d3e68`), og `px4_sitl_proteus` er standard i compose.
+- Den har `MotorOutput.msg`, `SeapathData.msg` og `RcControlMode.msg`, riktig `dds_topics.yaml`, og modulene `switch_motor_output`, `rcPublisher`, `motor_writer` og `seapath` bygget inn. Meldingene er like vår `px4_msgs`.
+- Den kompilerer. Med `none_iris` og `px4_hil_bridge` starter PX4, kobler seg til agenten (71 topics), og `px4_check` viser at PX4 sender `motor_output` og tar imot `seapath_data`. Inne i PX4 viser `listener seapath_data` riktig posisjon og heading (0,5708 rad, som båten i simulatoren).
+- Det kommer ingen data på `motor_output`. Ingenting starter `switch_motor_output`, `rcPublisher` eller `motor_writer` i SITL (ingen endringer i oppstartsfilene). Startet for hånd kjører `switch_motor_output`, men den sender bare når den får `rc_control_mode`, som `rcPublisher` bare lager når det finnes `input_rc` fra en RC-mottaker. Det finnes ikke i SITL: `input_rc`, `rc_control_mode` og `motor_output` er alle «never published».
+- `CMakeLists.txt` (linje 113) kopierer `custom.xml` inn i `src/modules/mavlink/mavlink/` når cmake kjører. På en ny kopi skjer det før PX4 henter MAVLink-submodulen, så hentingen feiler («already exists and is not an empty directory»). Compose henter derfor MAVLink-submodulen før `make`. Samme kopiering gjør at submodulen ser endret ut etter bygget, så `.gitmodules` har `ignore = untracked`.
+- Mulig løsning på RC-problemet uten å endre koden deres: `px4_hil_bridge` kan sende RC-verdier over MAVLink (som en RC-sender). Ikke sjekket om `simulator_mavlink` gjør dem om til `input_rc`.
 
 ## MAVLink-koblingen: `px4_hil_bridge`
 Avtalt med control 2026-10-26: motorkommandoene kommer fortsatt som `MotorOutput` via agenten. MAVLink brukes bare til å gi PX4 sensordata og klokke, så PX4 starter med `none_iris`.
@@ -118,7 +126,7 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Ved liten for
 - Baugthrusteren: positiv mot styrbord (bekreftet), og like sterk begge veier.
 
 ## Venter på svar fra control
-- `dds_topics.yaml` på `proteus_board`: `motor_output` og `seapath_data` er lagt inn (2026-10-20), men `MotorOutput.msg` mangler på grenen, så den kompilerer ikke. De må merge inn `feature/control/motor_output_and_switch`.
-- At `switch_motor_output` (og resten av kjeden) er slått på og startes i SITL-bygget.
-- Hvilket SITL-bygg som skal brukes. `px4_sitl_proteus` finnes ikke på GitHub, så vi bruker `px4_sitl_default` med `none_iris`.
+- At `switch_motor_output` (og `rcPublisher`, `motor_writer`) startes i SITL. De er bygget inn i `px4_sitl_proteus`, men startes ikke.
+- Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren.
+- At kopieringen av `custom.xml` i `CMakeLists.txt` skjer etter at MAVLink-submodulen er hentet, så en ny kopi bygger uten triks.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.

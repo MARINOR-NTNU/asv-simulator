@@ -33,7 +33,7 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Regulering er control sin oppgave, ikke simulatoren sin. `stub_controller` (med fartsregulering fra `speed_node`) og `waypoint_follower` er bare testverktøy til control og autonomy er koblet på, så de skal ikke videreutvikles mer enn testene trenger.
 
 ## Neste steg
-1. Full test med MotorOutput og SeapathData når `proteus_board` kompilerer (se «Venter på svar fra control» i [px4.md](px4.md)).
+1. Full test med MotorOutput når control starter `switch_motor_output` i SITL og bestemmer hva den gjør uten RC (se «Venter på svar fra control» i [px4.md](px4.md)). SeapathData inn til PX4 virker (testet 2026-10-26 med `sitl_proteus`).
 2. Bro fra autonomy til `CCommand`, når autonomy-noden og mottakeren hos control finnes (se [px4.md](px4.md)).
 3. Publiser bøyeposisjoner fra simulatoren (breddegrad og lengdegrad), når autonomy har sagt hvilket topic og hvilken meldingstype noden deres leser.
 4. Sett inn ekte tall for båten når CAD-modell, motorvalg og analyse finnes.
