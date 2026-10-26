@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Kopierer PX4-meldingene simulatoren bruker fra control sin fork inn i px4_msgs/.
 # Leser bare fra git-historikken i forken (git show), så arbeidskopien og grenene der endres ikke.
-# Kjør `git -C ~/Flightcontroller-px4 fetch` først hvis du vil ha nyeste versjon av grenene.
+# Leser fra submodulen px4/Flightcontroller-px4. Kjør `git -C px4/Flightcontroller-px4 fetch` først hvis du vil ha
+# nyeste versjon av grenene.
 # PX4_BRANCH=<gren> henter alle meldingene fra den grenen i stedet, f.eks. PX4_BRANCH=main.
 set -euo pipefail
 
-PX4_DIR="${PX4_DIR:-$HOME/Flightcontroller-px4}"
+PX4_DIR="${PX4_DIR:-$(cd "$(dirname "$0")/.." && pwd)/px4/Flightcontroller-px4}"
 # Bare meldingene som går mellom PX4 og simulatoren, som gren:fil. Trengs en til, legg den til her.
 MSGS=(
   "origin/feature/control/motor_output_and_switch:msg/MotorOutput.msg"
