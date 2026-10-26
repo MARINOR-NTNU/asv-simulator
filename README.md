@@ -111,7 +111,7 @@ source install/setup.bash
 ros2 launch asv_gazebo asv.launch.py                 # headless:=true for å kjøre uten vindu
 ros2 launch sim_interface demo.launch.py sim:=vrx_asv heading:=1.0 speed:=1.0
 ```
-Båten har to thrustere akter (`left`, `right`) som kan dreies, og en fast baugthruster (`bow`) som skyver sidelengs, så `/control/thruster/bow/thrust` finnes i tillegg. Foreløpig har den bare IMU og GPS. Leddvinklene, blant annet hvor thrusterne peker, publiseres på `/asv/joint_states`.
+Båten har to thrustere akter (`left`, `right`) som kan dreies, og en fast baugthruster (`bow`) som skyver sidelengs, så `/control/thruster/bow/thrust` finnes i tillegg. Den har IMU og GPS, og lidar og kamera kan legges til i `components.yaml` (se under). Leddvinklene, blant annet hvor thrusterne peker, publiseres på `/asv/joint_states`.
 
 Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/asv/meshes/`), så thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Modellen er skrevet i xacro, og `model.sdf` lages når pakken bygges:
 - `models/asv/model.sdf.xacro`: setter båten sammen.
@@ -121,10 +121,21 @@ Skrogfilen `skrog10-1.stl` er delt i skrog, thrusterhus og propeller (`models/as
 - `models/asv/components.yaml`: **komponentene om bord** (batteri, elektronikk osv.), én linje per komponent med masse, plassering og størrelse.
 
 **Totalvekten er fast på 45 kg** (`total_mass`), med skrog, thrustere og alle komponentene. Skroget får massen som er igjen, så dypgangen er den samme uansett hva som legges inn. Komponentene flytter tyngdepunktet etter hvor de står: et batteri på 8 kg ved x = −0,6 m gir ca. 3,7° akterlig trim. Veier komponentene mer enn totalvekten, stopper bygget med en feilmelding. Komponentene vises som oransje bokser i Gazebo.
+
+**Sensorer (lidar og kamera)** legges i samme fil under `sensors:`, med type og vinkel i tillegg. Vekten regnes inn i de 45 kg, og broene til ROS lages automatisk:
 ```yaml
 components:
   - {name: battery, mass: 8.0, x: -0.25, y: 0.0, z: -0.15, size: [0.30, 0.15, 0.10]}
+sensors:
+  - {name: lidar, type: lidar, mass: 0.8, x: 0.3, y: 0.0, z: 0.35, size: [0.1, 0.1, 0.07]}
+  - {name: front, type: camera, mass: 0.2, x: 0.65, y: 0.0, z: 0.25, pitch: 10, size: [0.05, 0.08, 0.04]}
 ```
+| Type | ROS-topics | Valgfrie felt (standard) |
+|---|---|---|
+| `lidar` | `/autonomy/lidar/<name>/points`, `/autonomy/lidar/<name>/scan` | `rate` (10 Hz), `samples` (360), `vertical_samples` (16), `fov_horizontal` (360°), `fov_vertical` (30°), `range_min` (0,3 m), `range_max` (50 m) |
+| `camera` | `/autonomy/camera/<name>/image_raw`, `/autonomy/camera/<name>/camera_info` | `rate` (15 Hz), `width` (640), `height` (480), `fov_horizontal` (80°), `near` (0,1 m), `far` (100 m) |
+
+Vinklene `roll`, `pitch` og `yaw` er i grader. Kameraet ser forover langs x, og positiv `pitch` heller det nedover. Lista er tom som standard, fordi kamera og lidar krever mye av grafikkortet. Med eksemplet over går simulatoren fortsatt på 0,99 av sanntid uten vindu.
 
 Bygg `asv_gazebo` på nytt etter en endring. Tallene i dag:
 

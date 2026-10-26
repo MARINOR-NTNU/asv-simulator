@@ -1,7 +1,8 @@
-# Komponentene om bord. Det er her båten endres når det kommer nye ting (batteri, elektronikk osv.).
+# Komponentene og sensorene om bord. Det er her båten endres når det kommer nye ting (batteri,
+# elektronikk, lidar, kamera osv.).
 #
 # Totalvekten er fast (total_mass i xacro/parameters.xacro, 45 kg med alt). Skroget får massen som
-# er igjen etter komponentene og thrusterne, så totalen og dypgangen er den samme uansett hva som
+# er igjen etter komponentene, sensorene og thrusterne, så totalen og dypgangen er den samme uansett hva som
 # står her. Det som ikke er lagt inn ennå, ligger i skroget, i tyngdepunktet hull_cog. Hver
 # komponent flytter derfor tyngdepunktet etter hvor den er plassert, slik den ekte båten gjør.
 #
@@ -15,3 +16,20 @@
 # Eksempel:
 #   - {name: battery, mass: 8.0, x: -0.25, y: 0.0, z: -0.15, size: [0.30, 0.15, 0.10]}
 components: []
+
+# Sensorer: som komponentene, pluss type og vinkel. Broene til ROS lages automatisk (asv.launch.py):
+#   lidar:  /autonomy/lidar/<name>/points (PointCloud2) og /autonomy/lidar/<name>/scan (LaserScan)
+#   camera: /autonomy/camera/<name>/image_raw og /autonomy/camera/<name>/camera_info
+# Felter i tillegg til name, mass, x, y, z, size:
+#   type               lidar eller camera
+#   roll, pitch, yaw   grader (kameraet ser langs x, positiv pitch heller nedover)
+#   rate               Hz (standard 10 for lidar, 15 for kamera)
+#   lidar:  samples (360), vertical_samples (16), fov_horizontal (360), fov_vertical (30) i grader,
+#           range_min (0.3), range_max (50) i meter
+#   camera: width (640), height (480), fov_horizontal (80) i grader, near (0.1), far (100) i meter
+# Kamera og lidar krever mye av grafikkortet, så ta bare med dem som trengs.
+#
+# Eksempel (ANSLAG for plassering og vekt):
+#   - {name: lidar, type: lidar, mass: 0.8, x: 0.3, y: 0.0, z: 0.35, size: [0.1, 0.1, 0.07]}
+#   - {name: front, type: camera, mass: 0.2, x: 0.65, y: 0.0, z: 0.25, pitch: 10, size: [0.05, 0.08, 0.04]}
+sensors: []

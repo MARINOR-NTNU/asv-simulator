@@ -1,14 +1,20 @@
 <?xml version="1.0"?>
 <!--
-  Komponentene fra components.yaml (stien regnes fra model.sdf.xacro): én del per komponent, festet til skroget, med masse,
-  treghetsmoment (massiv boks) og en enkel boks som vises i Gazebo. Ingen kollisjon, de er inne i skroget.
+  Komponentene og sensorene fra components.yaml (stien regnes fra model.sdf.xacro). Hver blir en
+  del festet til skroget, med masse, treghetsmoment (massiv boks) og en enkel boks som vises i
+  Gazebo. Ingen kollisjon, de er inne i eller oppå skroget. Sensorene får i tillegg en Gazebo-sensor.
+  asv.launch.py leser den samme fila og lager broene til ROS for sensorene.
 -->
 <sdf xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <xacro:property name="components" value="${xacro.load_yaml('components.yaml')['components'] or []}"/>
-  <xacro:property name="components_mass" value="${math.fsum([c['mass'] for c in components])}"/>
+  <xacro:property name="config" value="${xacro.load_yaml('components.yaml')}"/>
+  <xacro:property name="components" value="${config.get('components') or []}"/>
+  <xacro:property name="sensors" value="${config.get('sensors') or []}"/>
+  <xacro:property name="components_mass"
+                  value="${math.fsum([c['mass'] for c in components] + [s['mass'] for s in sensors])}"/>
 
-  <xacro:macro name="component" params="name mass x y z size">
+  <!-- Del med masse og en boks som vises. Innholdet i makroen (f.eks. en sensor) legges i delen. -->
+  <xacro:macro name="part" params="name mass x y z size color **content">
     <xacro:property name="l" value="${size[0]}"/>
     <xacro:property name="b" value="${size[1]}"/>
     <xacro:property name="h" value="${size[2]}"/>
@@ -26,10 +32,11 @@
       <visual name="${name}_visual">
         <geometry><box><size>${l} ${b} ${h}</size></box></geometry>
         <material>
-          <ambient>0.9 0.5 0.1 1</ambient>
-          <diffuse>0.9 0.5 0.1 1</diffuse>
+          <ambient>${color}</ambient>
+          <diffuse>${color}</diffuse>
         </material>
       </visual>
+      <xacro:insert_block name="content"/>
     </link>
     <joint name="${name}_joint" type="fixed">
       <parent>base_link</parent>
@@ -41,9 +48,76 @@
   <xacro:macro name="all_components" params="items">
     <xacro:if value="${len(items) > 0}">
       <xacro:property name="c" value="${items[0]}"/>
-      <xacro:component name="${c['name']}" mass="${c['mass']}" x="${c['x']}" y="${c['y']}"
-                       z="${c['z']}" size="${c['size']}"/>
+      <xacro:part name="${c['name']}" mass="${c['mass']}" x="${c['x']}" y="${c['y']}" z="${c['z']}"
+                  size="${c['size']}" color="0.9 0.5 0.1 1">
+        <content/>
+      </xacro:part>
       <xacro:all_components items="${items[1:]}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <!--
+    Sensorer. Vinklene (roll, pitch, yaw) er i grader. Kameraet ser langs x i sin egen ramme, og
+    lidaren skanner rundt z. Standardverdiene under brukes når feltet mangler i components.yaml.
+    Gazebo-topics: /asv/sensors/<navn>/scan (lidar) og /asv/sensors/<navn>/image_raw (kamera).
+  -->
+  <xacro:macro name="all_sensors" params="items">
+    <xacro:if value="${len(items) > 0}">
+      <xacro:property name="s" value="${items[0]}"/>
+      <xacro:property name="deg" value="${math.pi / 180.0}"/>
+      <xacro:unless value="${s['type'] in ('lidar', 'camera')}">
+        ${xacro.error('Sensoren %s i components.yaml har type %s. Kjente typer: lidar, camera.' % (s['name'], s['type']))}
+        ${STOPP_ukjent_sensortype}
+      </xacro:unless>
+      <xacro:part name="${s['name']}" mass="${s['mass']}" x="${s['x']}" y="${s['y']}" z="${s['z']}"
+                  size="${s.get('size', [0.08, 0.08, 0.08])}" color="0.1 0.1 0.1 1">
+        <content>
+          <sensor name="${s['name']}" type="${'gpu_lidar' if s['type'] == 'lidar' else 'camera'}">
+            <pose>0 0 0 ${s.get('roll', 0) * deg} ${s.get('pitch', 0) * deg} ${s.get('yaw', 0) * deg}</pose>
+            <always_on>1</always_on>
+            <xacro:if value="${s['type'] == 'lidar'}">
+              <update_rate>${s.get('rate', 10)}</update_rate>
+              <topic>/asv/sensors/${s['name']}/scan</topic>
+              <lidar>
+                <scan>
+                  <horizontal>
+                    <samples>${s.get('samples', 360)}</samples>
+                    <min_angle>${-s.get('fov_horizontal', 360) / 2.0 * deg}</min_angle>
+                    <max_angle>${s.get('fov_horizontal', 360) / 2.0 * deg}</max_angle>
+                  </horizontal>
+                  <vertical>
+                    <samples>${s.get('vertical_samples', 16)}</samples>
+                    <min_angle>${-s.get('fov_vertical', 30) / 2.0 * deg}</min_angle>
+                    <max_angle>${s.get('fov_vertical', 30) / 2.0 * deg}</max_angle>
+                  </vertical>
+                </scan>
+                <range>
+                  <min>${s.get('range_min', 0.3)}</min>
+                  <max>${s.get('range_max', 50.0)}</max>
+                  <resolution>0.01</resolution>
+                </range>
+              </lidar>
+            </xacro:if>
+            <xacro:if value="${s['type'] == 'camera'}">
+              <update_rate>${s.get('rate', 15)}</update_rate>
+              <topic>/asv/sensors/${s['name']}/image_raw</topic>
+              <camera>
+                <horizontal_fov>${s.get('fov_horizontal', 80) * deg}</horizontal_fov>
+                <image>
+                  <width>${s.get('width', 640)}</width>
+                  <height>${s.get('height', 480)}</height>
+                  <format>R8G8B8</format>
+                </image>
+                <clip>
+                  <near>${s.get('near', 0.1)}</near>
+                  <far>${s.get('far', 100.0)}</far>
+                </clip>
+              </camera>
+            </xacro:if>
+          </sensor>
+        </content>
+      </xacro:part>
+      <xacro:all_sensors items="${items[1:]}"/>
     </xacro:if>
   </xacro:macro>
 

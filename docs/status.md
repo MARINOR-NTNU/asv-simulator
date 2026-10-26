@@ -27,6 +27,7 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - Medsvingende vannmasse (`xDotU`, `yDotV`, `nDotR`) er satt til 0, så båten reagerer raskere sidelengs og i dreiing enn den virkelige vil gjøre. Det betyr mest for DP.
 - Siden 2026-10-26 er modellen skrevet i xacro (`asv_gazebo/models/asv/model.sdf.xacro`), med alle tallene i `xacro/parameters.xacro`. Den genererte `model.sdf` er sjekket lik den gamle, og båten holder heading og fart i Gazebo som før.
 - Fra 2026-10-26 ligger komponentene om bord i `asv_gazebo/models/asv/components.yaml` (masse, plassering, størrelse). Totalvekten er fast på 45 kg (`total_mass`), og skroget får det som er igjen. Før veide modellen 46,4 kg, fordi thrusterne kom i tillegg til skroget. Testet: 45,00 kg uten komponenter, og et batteri på 8 kg langt bak gir 3,7° akterlig trim. Ingen komponenter er lagt inn ennå.
+- Lidar og kamera legges i samme fil under `sensors:` (2026-10-26), med plassering, vinkel og vekt (regnet inn i de 45 kg). Broene til `/autonomy/lidar/<navn>/...` og `/autonomy/camera/<navn>/...` lages automatisk. Testet: lidar 10 Hz og kamera 15 Hz, og kameraet ser slalåmbøyene. Ingen sensorer er lagt inn ennå, fordi plasseringen ikke er bestemt.
 - Det finnes ingen CAD-modell ennå. Stabilitets- og hydrodynamikkanalyse er planlagt, og tallene derfra skal inn i modellen.
 
 ## Testverktøy for regulatoren
@@ -45,4 +46,4 @@ Sist oppdatert 2026-10-19. PX4-koblingen har sin egen side: [px4.md](px4.md).
 2. Bro fra autonomy til `CCommand`, når autonomy-noden og mottakeren hos control finnes (se [px4.md](px4.md)).
 3. Publiser bøyeposisjoner fra simulatoren (breddegrad og lengdegrad), når autonomy har sagt hvilket topic og hvilken meldingstype noden deres leser.
 4. Sett inn ekte tall for båten når CAD-modell, motorvalg og analyse finnes.
-5. Legg lidar og kamera på vår egen båt.
+5. Legg inn ekte plassering og modell for lidar og kamera i `components.yaml` når de er valgt.

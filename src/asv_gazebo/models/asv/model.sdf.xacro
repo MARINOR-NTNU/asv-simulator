@@ -29,7 +29,7 @@
   <xacro:property name="fixed_parts_mass" value="${2 * pod_mass + 3 * prop_mass + hydro_mass}"/>
   <xacro:property name="hull_mass" value="${total_mass - components_mass - fixed_parts_mass}"/>
   <xacro:if value="${hull_mass &lt;= 0}">
-    ${xacro.error('Komponentene i components.yaml (%.1f kg) og thrusterne (%.1f kg) veier mer enn total_mass (%.1f kg).' % (components_mass, fixed_parts_mass, total_mass))}
+    ${xacro.error('Komponentene og sensorene i components.yaml (%.1f kg) og thrusterne (%.1f kg) veier mer enn total_mass (%.1f kg).' % (components_mass, fixed_parts_mass, total_mass))}
     <!-- xacro.error stopper ikke, så navnet under (som ikke finnes) stopper xacro og bygget. -->
     ${STOPP_komponentene_er_for_tunge}
   </xacro:if>
@@ -87,6 +87,8 @@
 
     <!-- Komponentene fra components.yaml (batteri, elektronikk osv.). -->
     <xacro:all_components items="${components}"/>
+    <!-- Sensorene fra components.yaml (lidar, kamera), med plassering. -->
+    <xacro:all_sensors items="${sensors}"/>
 
     <xacro:steerable_thruster side="left" y_sign="1"/>
     <xacro:steerable_thruster side="right" y_sign="-1"/>

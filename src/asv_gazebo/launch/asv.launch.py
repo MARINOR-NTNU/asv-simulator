@@ -17,6 +17,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 import vrx_gz.launch
 import xacro
+import yaml
 
 from asv_gazebo.scenario import WORLDS
 from asv_gazebo.waves import gain_for_height
@@ -30,6 +31,27 @@ BRIDGES = [
     '/asv/sensors/imu@sensor_msgs/msg/Imu[ignition.msgs.IMU',
     '/asv/sensors/gps@sensor_msgs/msg/NavSatFix[ignition.msgs.NavSat',
 ]
+
+
+def sensor_bridges(config_path):
+    """Broer fra Gazebo til ROS for sensorene i components.yaml, med navnene autonomy leser."""
+    with open(config_path) as f:
+        sensors = (yaml.safe_load(f) or {}).get('sensors') or []
+    bridges, remaps = [], []
+    for s in sensors:
+        n, base = s['name'], f'/asv/sensors/{s["name"]}'
+        if s['type'] == 'lidar':
+            pairs = [(f'{base}/scan/points', 'sensor_msgs/msg/PointCloud2', 'PointCloudPacked',
+                      f'/autonomy/lidar/{n}/points'),
+                     (f'{base}/scan', 'sensor_msgs/msg/LaserScan', 'LaserScan', f'/autonomy/lidar/{n}/scan')]
+        else:
+            pairs = [(f'{base}/image_raw', 'sensor_msgs/msg/Image', 'Image', f'/autonomy/camera/{n}/image_raw'),
+                     (f'{base}/camera_info', 'sensor_msgs/msg/CameraInfo', 'CameraInfo',
+                      f'/autonomy/camera/{n}/camera_info')]
+        for gz_topic, ros_type, gz_type, ros_topic in pairs:
+            bridges.append(f'{gz_topic}@{ros_type}[ignition.msgs.{gz_type}')
+            remaps.append((gz_topic, ros_topic))
+    return bridges, remaps
 
 
 def launch(context, *args, **kwargs):
@@ -74,10 +96,12 @@ def launch(context, *args, **kwargs):
         spawn_args.extend(['-' + key, str(value)])
     actions.append(Node(
         package='ros_gz_sim', executable='create', output='screen', arguments=spawn_args))
+    # Sensorene fra components.yaml går rett til /autonomy/..., uten sensor_relay.
+    extra, remaps = sensor_bridges(os.path.join(share, 'models', 'asv', 'components.yaml'))
     actions.append(Node(
         package='ros_gz_bridge', executable='parameter_bridge', output='screen',
-        arguments=BRIDGES + [joint_states + '@sensor_msgs/msg/JointState[ignition.msgs.Model'],
-        remappings=[(joint_states, '/asv/joint_states')]))
+        arguments=BRIDGES + extra + [joint_states + '@sensor_msgs/msg/JointState[ignition.msgs.Model'],
+        remappings=[(joint_states, '/asv/joint_states')] + remaps))
     return actions
 
 
