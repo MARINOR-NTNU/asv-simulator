@@ -29,6 +29,7 @@
 - `none_iris` (`PX4_SYS_AUTOSTART=10016`) henger ved oppstart til noe kobler seg til TCP 4560. Det gjør `px4_hil_bridge`, som starter med `control:=px4`. Uten den startes aldri `uxrce_dds_client`.
 - Med Gazebo skriver PX4 `poll timeout` hvert sekund mens verdenen lastes, fordi det ikke kommer IMU ennå. Det stopper av seg selv.
 - `px4_hil_bridge` sender sensordata med simuleringstiden. Startes simulatoren på nytt mens PX4 kjører, går tiden bakover, og da må PX4 også startes på nytt.
+- `git clone` henter ikke submodulen. Uten `git submodule update --init px4/Flightcontroller-px4` er `px4/Flightcontroller-px4` tom, og PX4-containeren stopper med en melding om det. En `PX4_SRC`-sti som ikke finnes, gir det samme, fordi Docker da monterer en tom mappe.
 - Monter hele repoet i PX4-containeren, ikke bare submodulen. Submodulens `.git` er en fil som peker til `../../.git/modules/`, og PX4 trenger git under bygget.
 - Kjør PX4-containeren som brukeren (`--user`), ellers eies `build/` og `.git/modules/` av root.
 - På `sitl_proteus` kopierer cmake `custom.xml` inn i `src/modules/mavlink/mavlink/` før MAVLink-submodulen er hentet. Compose henter den før `make`, men har noen bygget uten compose og fått «already exists and is not an empty directory», må `src/modules/mavlink/mavlink/message_definitions/` slettes for hånd før neste forsøk.

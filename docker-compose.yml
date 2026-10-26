@@ -61,6 +61,11 @@ services:
       - -c
       - >-
         mkdir -p $$HOME &&
+        if [ ! -f Makefile ]; then
+        echo "FEIL: PX4-koden mangler i px4/Flightcontroller-px4 (eller i PX4_SRC).";
+        echo "Kjør fra roten av repoet: git submodule update --init px4/Flightcontroller-px4";
+        echo "Med PX4_SRC: sjekk at stien peker til mappa med PX4-koden (der Makefile ligger).";
+        exit 1; fi &&
         git submodule update --init src/modules/mavlink/mavlink &&
         make ${PX4_TARGET:-px4_sitl_proteus} j=1 &&
         cd build/${PX4_TARGET:-px4_sitl_proteus}/rootfs &&
