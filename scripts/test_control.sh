@@ -10,7 +10,9 @@
 #
 # Starter simulatoren (uten vindu) og PX4 med docker compose, sjekker at modulene til control starter
 # av seg selv, og kjører px4_rc_test (virtuell RC: kraft, retning, baug, vinkel, og at motorene
-# stopper når RC forsvinner). Submodulen settes tilbake og containerne stoppes til slutt, også ved feil.
+# stopper når RC forsvinner). Til slutt sjekkes CCOMMAND: at PX4 tar imot ønsket kurs og fart fra
+# ccommand_bridge, og at regulatoren styrer båten etter dem (px4_ccommand_test).
+# Submodulen settes tilbake og containerne stoppes til slutt, også ved feil.
 # Avslutter med kode 1 hvis noe feiler, så det kan brukes i skript.
 set -uo pipefail
 
@@ -22,7 +24,7 @@ SRC=""
 while (( $# )); do
   case "$1" in
     --src) SRC="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     *) REF="$1"; shift ;;
   esac
 done
@@ -73,7 +75,7 @@ elif [[ -n "$REF" ]]; then
 fi
 [[ -z "$SRC" ]] && echo "Tester control sin kode: $(git -C "$SUB" log -1 --format='%h %ci %an: %s')"
 echo "Starter simulatoren og PX4 (første bygg av PX4 kan ta 30-60 min) ..."
-HEADLESS=true docker compose up -d >/dev/null 2>&1
+HEADLESS=true CCOMMAND=true docker compose up -d >/dev/null 2>&1
 
 # Venter på at PX4 er bygget og koblet til agenten, eller på at bygget feiler.
 echo "PX4"
@@ -100,7 +102,10 @@ done
 px4cmd() { docker compose exec -T px4 bash -c "cd build/$TARGET/rootfs && ../bin/px4-$1" 2>&1; }
 missing=()
 for m in rcPublisher switch_motor_output; do
-  if px4cmd "$m status" | grep -q "not running"; then
+  # Rett etter oppstart kan svaret utebli. Tomt svar spørres på nytt og regnes som «ikke startet».
+  status="$(px4cmd "$m status")"
+  [[ -z "$status" ]] && sleep 5 && status="$(px4cmd "$m status")"
+  if [[ -z "$status" ]] || grep -q "not running" <<<"$status"; then
     missing+=("$m")
     px4cmd "$m start" >/dev/null
   fi
@@ -111,8 +116,32 @@ else
   ok "rcPublisher og switch_motor_output starter av seg selv"
 fi
 
-docker compose exec -T vrx bash -c 'source /root/vrx_ws/install/setup.bash && ros2 run sim_interface px4_rc_test' \
-  || FAILED=1
+ros() { docker compose exec -T vrx bash -c "source /root/vrx_ws/install/setup.bash && ros2 run sim_interface $1"; }
+ros px4_rc_test || FAILED=1
+
+# CCOMMAND: testen sender ønskede verdier, og imens spørres PX4 om den tar imot msgid 50000.
+# mavlink status skriver til PX4-konsollen, ikke tilbake til px4cmd, så svaret leses fra loggen.
+echo "CCOMMAND (ønsket kurs og fart fra ccommand_bridge, MAVLink UDP 14580)"
+out="$(mktemp)"
+ros px4_ccommand_test >"$out" 2>&1 &
+pid=$!
+rate=""
+for _ in $(seq 10); do
+  sleep 3
+  px4cmd "mavlink status" >/dev/null
+  sleep 1
+  rate=$(docker compose logs px4 --since 3s 2>&1 | grep -ao "msgid:50000, Rate: [0-9.]*" | grep -o "[0-9.]*$" | tail -1)
+  [[ -n "$rate" ]] && awk "BEGIN{exit !($rate >= 5)}" && break
+done
+if [[ -n "$rate" ]] && awk "BEGIN{exit !($rate >= 5)}"; then
+  ok "PX4 tar imot CCOMMAND (${rate} Hz)"
+else
+  fail "PX4 tar ikke imot CCOMMAND (msgid 50000 mangler i mavlink status etter 30 s). ccommand_bridge sier:"
+  docker compose logs vrx 2>&1 | grep -a "ccommand_bridge" | tail -2 | sed 's/^/      /'
+fi
+wait "$pid" || FAILED=1
+grep -v "^$\|CCOMMAND-testene" "$out"
+rm -f "$out"
 
 echo
 if (( FAILED )); then

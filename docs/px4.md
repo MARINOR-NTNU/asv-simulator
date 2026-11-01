@@ -137,6 +137,7 @@ Laget 2026-11-01. På båten sender jetson ønskede verdier til PX4 som MAVLink-
 - Sender ingenting når de ønskede verdiene er eldre enn 0,5 s, så PX4 kan merke at autonomy er borte.
 - Meldingskoden lages fra `src/sim_interface/mavlink/custom.xml` når noden starter. Fila er en kopi av control sin `custom.xml` uten `<include>`, og `scripts/sync_px4_msgs.sh` oppdaterer den.
 - Testet 2026-11-01 med control sin `main` (`8420d758a2`): `mavlink status` i PX4 viser `msgid:50000, Rate: 10.0 Hz` fra system 1, komponent 191 på instansen for port 14580, uten tapte meldinger. PX4 er bygget med dialekten `custom`, så sjekksummen stemmer og meldingen tas imot. Ingen modul i PX4 bruker den ennå, så regulatorene får ikke verdiene.
+- `scripts/test_control.sh` sjekker CCOMMAND til slutt (`px4_ccommand_test`): at PX4 tar imot (msgid 50000 i `mavlink status`), at PX4 gir motorkraft fra den med RC av, at båten snur 90° til ønsket kurs innen 40 s og holder 1 m/s, og at motorene stopper innen 1,5 s når de ønskede verdiene forsvinner (forslag, ikke avtalt). Med control sin `main` 2026-11-01: ✓ PX4 tar imot (10 Hz), ✗ resten, fordi ingen modul leser meldingen. Uten RC sender `main` heller ingen MotorOutput.
 - Uavklart med control: enhetene og retningen på `desired_course` (vi sender kompasskurs i radianer, som PX4 bruker), om port 14580 er riktig, og hvilken modul som skal ta imot (ingen kode leser `CCOMMAND` i PX4 ennå).
 
 ## Klokka

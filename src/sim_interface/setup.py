@@ -37,6 +37,7 @@ setup(
             'control_test = sim_interface.control_test:main',
             'px4_rc_test = sim_interface.px4_rc_test:main',
             'ccommand_bridge = sim_interface.ccommand_bridge:main',
+            'px4_ccommand_test = sim_interface.px4_ccommand_test:main',
         ],
     },
 )
