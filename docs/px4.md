@@ -53,6 +53,15 @@ Control har laget `feature/control/sitl_proteus` med `boards/px4/sitl/proteus.px
 - `CMakeLists.txt` (linje 113) kopierer `custom.xml` inn i `src/modules/mavlink/mavlink/` når cmake kjører. På en ny kopi skjer det før PX4 henter MAVLink-submodulen, så hentingen feiler («already exists and is not an empty directory»). Compose henter derfor MAVLink-submodulen før `make`. Samme kopiering gjør at submodulen ser endret ut etter bygget, så `.gitmodules` har `ignore = untracked`.
 - Mulig løsning på RC-problemet uten å endre koden deres: `px4_hil_bridge` kan sende RC-verdier over MAVLink (som en RC-sender). Ikke sjekket om `simulator_mavlink` gjør dem om til `input_rc`.
 
+## `feature/control/start_modules_init` (testet 2026-11-01)
+Control sa at punkt 1–3 fra meldingen 26. oktober var gjort på denne grenen (`0b07ba25b6`). Testet lokalt i submodulen (ikke committet, submodulen peker fortsatt på `main`):
+- ✅ Modulene starter av seg selv i SITL (`init.d-posix/rcS`): `rcPublisher`, `motor_writer`, `switch_motor_output`, `switch_wrench`, `thrust_allocator`, `transit_controller`.
+- ✅ Uten RC sender `switch_motor_output` 0 i `motor_output`.
+- ✅ Med virtuell RC (1700 µs) kommer 40 % ut, som før.
+- ❌ **Når RC forsvinner, fortsetter `motor_output` med siste RC-verdi i det uendelige** (målt 40 % i over 12 s). `rc_control_mode_sub.copy()` gir alltid siste melding, uansett alder, og alderen sjekkes ikke. På båten kjører den videre med siste kommando hvis fjernkontrollen mister kontakten. `thruster_adapter` slår ikke inn, fordi `MotorOutput` fortsetter å komme.
+- ❌ Tidsgrensen er `0.5*10E6` µs, altså 5 s, ikke 0,5 s (`10E6` = 10 000 000).
+- ❌ `custom.xml`-feilen i `CMakeLists.txt` og `+1` i vinkelformelen i `rcPublisher` er ikke endret på noen gren.
+
 ## `main` hos control (testet 2026-10-26, kl. 15)
 Control har slått sammen `sitl_proteus` inn i `main` (pull request #4), og `rcPublisher` regner nå om RC fra 1000–2000 µs til -100..100 for alle fire kanalene. Submodulen følger `main` (`8420d758a2`). Med virtuell RC og modulene startet for hånd, og broen med standardinnstillinger (ingen midlertidig omregning):
 - 1700 µs på begge akterthrusterne gir 40 % i `motor_output`, 20 N og 1,62 m/s. Bare babord motor svinger båten med klokka. Baugen på 1700 µs gir -10 N (baugen mot styrbord). Kraft og fortegn stemmer.
@@ -137,7 +146,7 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10
 - Baugthrusteren: positiv mot styrbord (bekreftet), og like sterk begge veier.
 
 ## Venter på svar fra control
-- At `switch_motor_output` (og `rcPublisher`, `motor_writer`) startes i SITL. De er bygget inn i `px4_sitl_proteus`, men startes ikke.
+- At `switch_motor_output` sjekker at RC-meldingen er fersk, og sender 0 når RC har vært borte i 0,5 s (nå: siste verdi for alltid). Modulstart i SITL er gjort på `feature/control/start_modules_init`, ikke i `main` ennå.
 - Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren (`rc_channels` i `px4_hil_bridge` virker).
 - At kopieringen av `custom.xml` i `CMakeLists.txt` skjer etter at MAVLink-submodulen er hentet, så en ny kopi bygger uten triks.
 - CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.
