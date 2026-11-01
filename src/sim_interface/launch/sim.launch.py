@@ -10,6 +10,7 @@
   thrust_time_constant:=0.3     treghet i motorene, sekunder
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
   autonomy:=none | fake | path  ingen, fake_heading, eller waypoint_follower
+  ccommand:=true                control:=px4: ønsket kurs og fart til PX4 som CCOMMAND (ccommand_bridge)
 
 control er ett valg, så stub_controller og PX4 kan ikke styre motorene samtidig.
 """
@@ -75,6 +76,8 @@ def generate_launch_description():
             'forward_thruster', default_value='',
             description='control:=px4: motoren forward_propeller_thrust sendes til, f.eks. bow'),
         DeclareLaunchArgument('agent_port', default_value='8888', description='control:=px4'),
+        DeclareLaunchArgument('ccommand', default_value='false',
+                              description='control:=px4: ønsket kurs og fart til PX4 som CCOMMAND'),
 
         # Simulatoren
         include('asv_gazebo', 'asv.launch.py',
@@ -106,7 +109,8 @@ def generate_launch_description():
         Node(package='sim_interface', executable='stub_controller', condition=when('control', 'stub'),
              parameters=[config, sim_time]),
         include('sim_interface', 'px4_bridge.launch.py',
-                {'forward_thruster': arg('forward_thruster')}, when('control', 'px4')),
+                {'forward_thruster': arg('forward_thruster'), 'ccommand': arg('ccommand')},
+                when('control', 'px4')),
         ExecuteProcess(
             cmd=['MicroXRCEAgent', 'udp4', '-p', arg('agent_port')], output='screen',
             condition=when('control', 'px4')),

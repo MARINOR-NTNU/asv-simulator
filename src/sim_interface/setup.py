@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/config', glob('config/*.yaml')),
+        ('share/' + package_name + '/mavlink', glob('mavlink/*.xml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -35,6 +36,7 @@ setup(
             'px4_check = sim_interface.px4_check:main',
             'control_test = sim_interface.control_test:main',
             'px4_rc_test = sim_interface.px4_rc_test:main',
+            'ccommand_bridge = sim_interface.ccommand_bridge:main',
         ],
     },
 )

@@ -129,8 +129,15 @@ Testet 2026-10-26 med `seapathDriver` og `none_iris`, både med `sim:=fast` og m
 - PX4 sine forbindelser lages av agenten, som ikke er en ROS-node, så de vises som `_NODE_NAME_UNKNOWN_`. Det er slik verktøyet ser at PX4 er koblet til. Testet 2026-10-19 uten PX4 og med `ros2 topic pub`, ikke mot ekte PX4.
 - Feil som bare følger av en feil lenger opp i kjeden, vises som «følger av …», så det er den første ✗ som skal rettes.
 
-## CCommand (kommer)
-Control sin kjede starter med `CCommand`, som på båten kommer over MAVLink fra companion-maskinen. Når autonomy-noden og mottakeren hos control finnes, trengs en bro fra `/autonomy/desired/{heading,speed}` til `CCommand`. Da kan autonomy-noden kjøre uendret mot både `control:=stub` og `control:=px4`. Om broen skal gå over MAVLink eller XRCE-DDS, er ikke avklart.
+## CCOMMAND: ønsket kurs og fart til PX4 (`ccommand_bridge`)
+Laget 2026-11-01. På båten sender jetson ønskede verdier til PX4 som MAVLink-meldingen `CCOMMAND` (id 50000, definert av control i `src/modules/mavlink/custom_messages/custom.xml`). `ccommand_bridge` gjør det samme i simulatoren, så autonomy-noden kan kjøre uendret mot både `control:=stub` og `control:=px4`.
+- Starter med `control:=px4 ccommand:=true` (compose: `CCOMMAND=true`, f.eks. `AUTONOMY=fake CCOMMAND=true docker compose up`).
+- Leser `/autonomy/desired/heading` (rad, ENU) og `/autonomy/desired/speed` (m/s). Sender `desired_speed` i m/s og `desired_course` som kompasskurs i radianer (0 = nord, med klokka, 0 til 2π), `control_mode` 0 (VELOCITYHEADING), `is_ground_controlled` 0. De andre feltene er 0.
+- 10 Hz til UDP 14580, som er PX4 sin MAVLink-instans for onboard-datamaskinen i SITL (`px4-rc.mavlink`). System 1, komponent 191 (`MAV_COMP_ID_ONBOARD_COMPUTER`). Alt kan endres i `px4_bridge.yaml`.
+- Sender ingenting når de ønskede verdiene er eldre enn 0,5 s, så PX4 kan merke at autonomy er borte.
+- Meldingskoden lages fra `src/sim_interface/mavlink/custom.xml` når noden starter. Fila er en kopi av control sin `custom.xml` uten `<include>`, og `scripts/sync_px4_msgs.sh` oppdaterer den.
+- Testet 2026-11-01 med control sin `main` (`8420d758a2`): `mavlink status` i PX4 viser `msgid:50000, Rate: 10.0 Hz` fra system 1, komponent 191 på instansen for port 14580, uten tapte meldinger. PX4 er bygget med dialekten `custom`, så sjekksummen stemmer og meldingen tas imot. Ingen modul i PX4 bruker den ennå, så regulatorene får ikke verdiene.
+- Uavklart med control: enhetene og retningen på `desired_course` (vi sender kompasskurs i radianer, som PX4 bruker), om port 14580 er riktig, og hvilken modul som skal ta imot (ingen kode leser `CCOMMAND` i PX4 ennå).
 
 ## Klokka
 Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10-26: med `none_iris` får PX4 tiden sin fra `HIL_SENSOR` som `px4_hil_bridge` sender med simuleringstiden (lockstep). PX4 følger derfor simulatoren også når den går saktere eller fortere enn sanntid. Gazebo med vår båt går på 0,99 av sanntid.
@@ -150,4 +157,4 @@ Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10
 - At `switch_motor_output` sjekker at RC-meldingen er fersk, og sender 0 når RC har vært borte i 0,5 s (nå: siste verdi for alltid). Modulstart i SITL er gjort på `feature/control/start_modules_init`, ikke i `main` ennå.
 - Hva `switch_motor_output` skal gjøre uten RC i simulatoren: bruke regulatorveien, sende 0, eller få RC-verdier fra simulatoren (`rc_channels` i `px4_hil_bridge` virker).
 - At kopieringen av `custom.xml` i `CMakeLists.txt` skjer etter at MAVLink-submodulen er hentet, så en ny kopi bygger uten triks.
-- CCommand: semikolonene i filen, enhetene i `desired_course` og `desired_speed`, og om den skal inn over MAVLink eller XRCE-DDS i simulatoren.
+- CCOMMAND: en mottaker i PX4 (MAVLink → uORB `CCommand`), enhetene og retningen på `desired_course`, og om UDP 14580 er riktig port. Semikolonene i `CCommand.msg`.

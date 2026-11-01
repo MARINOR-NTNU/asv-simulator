@@ -37,3 +37,13 @@ px4_hil_bridge:
     # Kanaler hos control (rcPublisher): 0 baug, 1 babord, 2 styrbord, 3 vinkel, 6 modus (SC),
     # 7 manuell (SD). Manuell motorstyring: [1500, 1500, 1500, 1500, 1500, 1500, 1800, 1800].
     rc_channels: [0]
+
+ccommand_bridge:
+  ros__parameters:
+    # Startes med ccommand:=true. PX4 i SITL tar imot fra jetson på UDP 14580.
+    host: 127.0.0.1
+    port: 14580
+    rate: 10.0       # Hz
+    timeout: 0.5     # sekunder: eldre ønskede verdier sendes ikke (som kontrakten mot control)
+    control_mode: 0  # 0 = VELOCITYHEADING, 1 = WRENCH, 2 = MOTOR_OUTPUT (custom.xml)
+    is_ground_controlled: 0
