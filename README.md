@@ -288,8 +288,10 @@ PX4 på kortet i stedet for SITL: start agenten for hånd med `MicroXRCEAgent se
 ```bash
 scripts/test_control.sh                                     # commiten submodulen står på
 scripts/test_control.sh feature/control/start_modules_init  # en gren hos control, bare lokalt
+scripts/test_control.sh --src ~/Flightcontroller-px4        # en egen kopi av koden, før man pusher
 ```
-Skriptet starter simulatoren (uten vindu) og PX4, sjekker at modulene til control starter av seg selv, og kjører `px4_rc_test` med virtuell RC: 0 uten RC, 1700 µs gir 40 % og 20 N, båten går forover og svinger riktig vei, baugen og vinkelen har riktig fortegn, og motorene stopper innen 1 s når RC forsvinner. Hver test får ✓ eller ✗, og skriptet avslutter med kode 1 hvis noe feiler. Submodulen settes tilbake og containerne stoppes til slutt.
+Med `--src` testes koden i den mappa, med endringer som ikke er committet, i stedet for submodulen. Da kan control teste en rettelse før de pusher.
+Skriptet starter simulatoren (uten vindu) og PX4, sjekker at modulene til control starter av seg selv, og kjører `px4_rc_test` med virtuell RC: 0 uten RC, 1700 µs gir 40 % og 20 N, båten går forover og svinger riktig vei, baugen og vinkelen har riktig fortegn, og motorene stopper innen 1,5 s når RC forsvinner (0,5 s gammel RC, pluss at `switch_motor_output` sender 0 hvert 0,5 s). Hver test får ✓ eller ✗, og skriptet avslutter med kode 1 hvis noe feiler. Submodulen settes tilbake og containerne stoppes til slutt.
 
 **4. Sjekk at det virker**, i et nytt skall på verten:
 ```bash

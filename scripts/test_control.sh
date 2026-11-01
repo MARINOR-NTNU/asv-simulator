@@ -3,6 +3,10 @@
 #
 #   scripts/test_control.sh                                     # commiten submodulen står på
 #   scripts/test_control.sh feature/control/start_modules_init  # en gren hos control (bare lokalt)
+#   scripts/test_control.sh --src ~/Flightcontroller-px4        # en egen kopi av koden, også ucommittet
+#
+# Med --src testes koden i den mappa i stedet for submodulen (via PX4_SRC i docker-compose.yml), så
+# control kan teste endringene sine før de pusher. Byggefilene havner i build/ i den mappa.
 #
 # Starter simulatoren (uten vindu) og PX4 med docker compose, sjekker at modulene til control starter
 # av seg selv, og kjører px4_rc_test (virtuell RC: kraft, retning, baug, vinkel, og at motorene
@@ -13,7 +17,19 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 SUB=px4/Flightcontroller-px4
-REF="${1:-}"
+REF=""
+SRC=""
+while (( $# )); do
+  case "$1" in
+    --src) SRC="${2:-}"; shift 2 ;;
+    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    *) REF="$1"; shift ;;
+  esac
+done
+if [[ -n "$SRC" && -n "$REF" ]]; then
+  echo "Bruk enten en gren eller --src, ikke begge."
+  exit 1
+fi
 TARGET="${PX4_TARGET:-px4_sitl_proteus}"
 ORIG="$(git -C "$SUB" rev-parse HEAD)"
 FAILED=0
@@ -36,7 +52,18 @@ if [[ -n "$(docker ps -q)" ]]; then
   exit 1
 fi
 
-if [[ -n "$REF" ]]; then
+if [[ -n "$SRC" ]]; then
+  abs="$(cd "$SRC" 2>/dev/null && pwd)" || { echo "Fant ikke mappa ${SRC}."; exit 1; }
+  SRC="$abs"
+  if [[ ! -f "$SRC/Makefile" ]]; then
+    echo "$SRC ser ikke ut som PX4-koden (ingen Makefile)."
+    exit 1
+  fi
+  export PX4_SRC="$SRC"
+  dirty=$(git -C "$SRC" status --porcelain --untracked-files=no 2>/dev/null | wc -l)
+  echo "Tester control sin kode i $SRC: $(git -C "$SRC" log -1 --format='%h %ci %an: %s' 2>/dev/null)"
+  (( dirty )) && echo "  med $dirty fil(er) som er endret, men ikke committet"
+elif [[ -n "$REF" ]]; then
   git -C "$SUB" fetch -q origin
   if ! git -C "$SUB" -c advice.detachedHead=false checkout -q "origin/$REF" 2>/dev/null &&
      ! git -C "$SUB" -c advice.detachedHead=false checkout -q "$REF" 2>/dev/null; then
@@ -44,7 +71,7 @@ if [[ -n "$REF" ]]; then
     exit 1
   fi
 fi
-echo "Tester control sin kode: $(git -C "$SUB" log -1 --format='%h %ci %an: %s')"
+[[ -z "$SRC" ]] && echo "Tester control sin kode: $(git -C "$SUB" log -1 --format='%h %ci %an: %s')"
 echo "Starter simulatoren og PX4 (første bygg av PX4 kan ta 30-60 min) ..."
 HEADLESS=true docker compose up -d >/dev/null 2>&1
 

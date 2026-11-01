@@ -135,8 +135,10 @@ class Px4RcTest:
                               f'{self.motor.port_side_thrust:g} %). switch_motor_output må sjekke at '
                               'RC-meldingen er fersk.')
         else:
-            self.check(stopped <= 1.0, f'Motorene stopper når RC forsvinner (etter {stopped:.1f} s, '
-                                       'krav 1 s)')
+            # Kravet er 0,5 s gammel RC (som timeouten i kontrakten), pluss at switch_motor_output
+            # sender 0 hvert 0,5 s og litt måleforsinkelse: ca. 1 s, med margin til 1,5 s.
+            self.check(stopped <= 1.5, f'Motorene stopper når RC forsvinner (etter {stopped:.1f} s, '
+                                       'krav 1,5 s)')
         self.set_rc([0])
         return not self.failed
 

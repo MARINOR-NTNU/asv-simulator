@@ -40,7 +40,7 @@
 - `git clone` henter ikke submodulen. Uten `git submodule update --init px4/Flightcontroller-px4` er `px4/Flightcontroller-px4` tom, og PX4-containeren stopper med en melding om det. En `PX4_SRC`-sti som ikke finnes, gir det samme, fordi Docker da monterer en tom mappe.
 - Monter hele repoet i PX4-containeren, ikke bare submodulen. Submodulens `.git` er en fil som peker til `../../.git/modules/`, og PX4 trenger git under bygget.
 - Kjør PX4-containeren som brukeren (`--user`), ellers eies `build/` og `.git/modules/` av root.
-- På `sitl_proteus` kopierer cmake `custom.xml` inn i `src/modules/mavlink/mavlink/` før MAVLink-submodulen er hentet. Compose henter den før `make`, men har noen bygget uten compose og fått «already exists and is not an empty directory», må `src/modules/mavlink/mavlink/message_definitions/` slettes for hånd før neste forsøk.
+- På `sitl_proteus` kopierer cmake `custom.xml` inn i `src/modules/mavlink/mavlink/` før MAVLink-submodulen er hentet. Compose henter den (med `--recursive`, fordi MAVLink har `pymavlink` med `mavgen.py` som egen submodule) før `make`, men har noen bygget uten compose og fått «already exists and is not an empty directory», må `src/modules/mavlink/mavlink/message_definitions/` slettes for hånd før neste forsøk.
 - Etter at submodulen er flyttet til en ny commit, bygger PX4 på nytt ved neste `docker compose up`, så det tar lenger tid før PX4 starter.
 - PX4 sine egne submoduler hentes av bygget selv. Ikke bruk `git submodule update --recursive`, det henter NuttX og mye annet vi ikke trenger.
 - Agenten viser PX4 sine forbindelser som `_CREATED_BY_BARE_DDS_APP_` i ROS 2, ikke som en node.

@@ -61,6 +61,7 @@ Control sa at punkt 1–3 fra meldingen 26. oktober var gjort på denne grenen (
 - ❌ **Når RC forsvinner, fortsetter `motor_output` med siste RC-verdi i det uendelige** (målt 40 % i over 12 s). `rc_control_mode_sub.copy()` gir alltid siste melding, uansett alder, og alderen sjekkes ikke. På båten kjører den videre med siste kommando hvis fjernkontrollen mister kontakten. `thruster_adapter` slår ikke inn, fordi `MotorOutput` fortsetter å komme.
 - ❌ Tidsgrensen er `0.5*10E6` µs, altså 5 s, ikke 0,5 s (`10E6` = 10 000 000).
 - ❌ `custom.xml`-feilen i `CMakeLists.txt` og `+1` i vinkelformelen i `rcPublisher` er ikke endret på noen gren.
+- Rettelse testet 2026-11-01 i en lokal kopi med `scripts/test_control.sh --src` (alt ✓, motorene stopper etter 1,0 s): i `SwitchMotorOutput.cpp`, legg `and hrt_elapsed_time(&rc_values.timestamp) < 500_ms` til i den første `if`-en, og endre `0.5*10E6` til `0.5*1E6`. Sendt som forslag til control.
 
 ## `main` hos control (testet 2026-10-26, kl. 15)
 Control har slått sammen `sitl_proteus` inn i `main` (pull request #4), og `rcPublisher` regner nå om RC fra 1000–2000 µs til -100..100 for alle fire kanalene. Submodulen følger `main` (`8420d758a2`). Med virtuell RC og modulene startet for hånd, og broen med standardinnstillinger (ingen midlertidig omregning):

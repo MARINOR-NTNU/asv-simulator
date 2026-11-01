@@ -59,7 +59,8 @@ services:
     stdin_open: true
     tty: true
     # MAVLink-biblioteket hentes før make: CMakeLists.txt i sitl_proteus kopierer custom.xml inn i
-    # mappa før PX4 henter biblioteket, og da feiler hentingen på en ny kopi.
+    # mappa før PX4 henter biblioteket, og da feiler hentingen på en ny kopi. --recursive, fordi
+    # MAVLink har pymavlink (mavgen.py) som egen submodule.
     # PX4_AIRFRAME: 10016 = none_iris, som får sensordata og klokke fra px4_hil_bridge i vrx (TCP 4560).
     # 10040 = sihsim_quadx, der PX4 simulerer et quadkopter selv.
     command:
@@ -72,7 +73,7 @@ services:
         echo "Kjør fra roten av repoet: git submodule update --init px4/Flightcontroller-px4";
         echo "Med PX4_SRC: sjekk at stien peker til mappa med PX4-koden (der Makefile ligger).";
         exit 1; fi &&
-        git submodule update --init src/modules/mavlink/mavlink &&
+        git submodule update --init --recursive src/modules/mavlink/mavlink &&
         make ${PX4_TARGET:-px4_sitl_proteus} j=1 &&
         cd build/${PX4_TARGET:-px4_sitl_proteus}/rootfs &&
         PX4_SYS_AUTOSTART=${PX4_AIRFRAME:-10016} ../bin/px4
