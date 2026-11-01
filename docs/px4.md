@@ -54,7 +54,7 @@ Control har laget `feature/control/sitl_proteus` med `boards/px4/sitl/proteus.px
 - Mulig løsning på RC-problemet uten å endre koden deres: `px4_hil_bridge` kan sende RC-verdier over MAVLink (som en RC-sender). Ikke sjekket om `simulator_mavlink` gjør dem om til `input_rc`.
 
 ## `feature/control/start_modules_init` (testet 2026-11-01)
-Control sa at punkt 1–3 fra meldingen 26. oktober var gjort på denne grenen (`0b07ba25b6`). Testet lokalt i submodulen (ikke committet, submodulen peker fortsatt på `main`):
+Control sa at punkt 1–3 fra meldingen 26. oktober var gjort på denne grenen (`0b07ba25b6`). Samme resultat med `scripts/test_control.sh feature/control/start_modules_init`: alt ✓ unntatt sikkerhetstesten. Testet lokalt i submodulen (ikke committet, submodulen peker fortsatt på `main`):
 - ✅ Modulene starter av seg selv i SITL (`init.d-posix/rcS`): `rcPublisher`, `motor_writer`, `switch_motor_output`, `switch_wrench`, `thrust_allocator`, `transit_controller`.
 - ✅ Uten RC sender `switch_motor_output` 0 i `motor_output`.
 - ✅ Med virtuell RC (1700 µs) kommer 40 % ut, som før.

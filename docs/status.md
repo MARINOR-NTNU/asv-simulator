@@ -33,6 +33,8 @@ Sist oppdatert 2026-10-26. PX4-koblingen har sin egen side: [px4.md](px4.md).
 ## Testverktøy for regulatoren
 - `control_test` (2026-10-26): sprang i kurs eller fart, med stigetid, oversving, tid til stabil, stasjonært avvik og motorbruk, lagret som CSV, JSON og graf i `results/`. Testet med `stub_controller` i stille vann og i vind og strøm. Virker med control sin regulator når motorkjeden deres og en vei for ønskede verdier til PX4 (`CCommand`) er klar.
 
+- `scripts/test_control.sh [gren]` (2026-11-01): tester control sin PX4-kode hele veien til motorene med én kommando (modulstart, kraft, retning, baug, vinkel, og at motorene stopper når RC forsvinner). Fanget at `feature/control/start_modules_init` kjører videre med siste RC-verdi.
+
 ## Grensesnittet mot control og autonomy
 - Avtalt med control 2026-10-12: én `std_msgs/Float64` per tall på `/control/thruster/{left,right,bow}/thrust` (newton) og `/control/thruster/{left,right}/angle` (radianer), fortegn som i README, og timeout på 0,5 s per motor. Ikke endre dette uten å avtale det med control.
 - Control sin kode kjører i PX4, så den kobles til via uXRCE-DDS. Det er klart på vår side, men ikke testet mot ekte PX4. Se [px4.md](px4.md).

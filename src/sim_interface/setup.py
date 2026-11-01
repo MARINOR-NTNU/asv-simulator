@@ -34,6 +34,7 @@ setup(
             'px4_hil_bridge = sim_interface.px4_hil_bridge:main',
             'px4_check = sim_interface.px4_check:main',
             'control_test = sim_interface.control_test:main',
+            'px4_rc_test = sim_interface.px4_rc_test:main',
         ],
     },
 )
