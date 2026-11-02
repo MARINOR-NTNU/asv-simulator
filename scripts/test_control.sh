@@ -100,12 +100,16 @@ done
 
 # Modulene skal starte av seg selv i SITL. Hvis ikke, startes de her, så resten kan testes.
 px4cmd() { docker compose exec -T px4 bash -c "cd build/$TARGET/rootfs && ../bin/px4-$1" 2>&1; }
+# Rett etter oppstart svarer ikke konsollen alltid, og da ville en modul som mangler, sett ut som
+# den kjører. Venter til uxrce_dds_client svarer.
+for _ in $(seq 15); do
+  px4cmd "uxrce_dds_client status" | grep -q "Running" && break
+  sleep 2
+done
 missing=()
 for m in rcPublisher switch_motor_output; do
-  # Rett etter oppstart kan svaret utebli. Tomt svar spørres på nytt og regnes som «ikke startet».
-  status="$(px4cmd "$m status")"
-  [[ -z "$status" ]] && sleep 5 && status="$(px4cmd "$m status")"
-  if [[ -z "$status" ]] || grep -q "not running" <<<"$status"; then
+  # En modul som kjører, kan svare med ingenting (rcPublisher), så bare «not running» teller.
+  if px4cmd "$m status" | grep -q "not running"; then
     missing+=("$m")
     px4cmd "$m start" >/dev/null
   fi

@@ -66,7 +66,8 @@ class Px4CcommandTest:
         return max(abs(m.port_side_thrust), abs(m.starboard_thrust)) if m else 0.0
 
     def run(self):
-        self.spin(5.0, until=lambda: '/autonomy/heading' in self.values)
+        # Venter også på MotorOutput, så sjekken av om motorene står stille under ser riktig verdi.
+        self.spin(5.0, until=lambda: '/autonomy/heading' in self.values and self.motor is not None)
         if '/autonomy/heading' not in self.values:
             self.check(False, 'Mangler /autonomy/heading. Kjører simulatoren?')
             return False
@@ -75,7 +76,16 @@ class Px4CcommandTest:
         # resten av kjeden ikke virker.
         print(f'Ønsket kurs {math.degrees(TURN):.0f}° fra der båten peker, {SPEED:g} m/s, RC av')
         target = self.values['/autonomy/heading'] + TURN
+        idle = self.thrust() < 1.0
         self.desired = (target, SPEED)
+        if not idle:
+            # Ellers ser kraft som er igjen fra RC-testen ut som kraft fra CCOMMAND.
+            self.spin(15.0)
+            self.check(False, f'Motorene går allerede før CCOMMAND sendes ({self.thrust():g} %), så '
+                              'kraft fra CCOMMAND kan ikke testes. Følger trolig av at motorene ikke '
+                              'stopper når RC forsvinner.')
+            self.desired = None
+            return False
         took = self.spin(15.0, until=lambda: self.thrust() >= 1.0)
         if took is None:
             why = ('PX4 sender ingen MotorOutput (switch_motor_output startet?)' if self.motor is None
