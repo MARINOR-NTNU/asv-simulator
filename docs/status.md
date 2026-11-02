@@ -1,6 +1,6 @@
 # Status
 
-Sist oppdatert 2026-11-01. PX4-koblingen har sin egen side: [px4.md](px4.md).
+Sist oppdatert 2026-11-02. PX4-koblingen har sin egen side: [px4.md](px4.md).
 
 ## Simulatoren
 - Gruppen har valgt å fortsette i VRX (2026-10-12). `config/unity.yaml` er en mal med plassholdere og er ikke testet.
@@ -45,7 +45,7 @@ Sist oppdatert 2026-11-01. PX4-koblingen har sin egen side: [px4.md](px4.md).
 
 ## Neste steg
 1. Full test med MotorOutput når control starter `switch_motor_output` i SITL og bestemmer hva den gjør uten RC (se «Venter på svar fra control» i [px4.md](px4.md)). SeapathData inn til PX4 virker, og hele veien fra PX4 til motorene i Gazebo er testet med virtuell RC (2026-10-26). Med control sin `main` (2026-10-26) stemmer kraft og fortegn uten omregning hos oss. Vinkelen kommer også som -100..100, og broen gjør den om til radianer. Gjenstår: starte modulene i SITL.
-2. `ccommand_bridge` (2026-11-01) sender ønsket kurs og fart til PX4 som `CCOMMAND`, og PX4 tar imot den. Gjenstår hos control: en modul som leser den og gir den til regulatorene. Da kan `control_test` kjøres mot regulatoren deres (se [px4.md](px4.md)).
+2. `ccommand_bridge` (2026-11-01) sender ønsket kurs og fart til PX4 som `CCOMMAND`, og PX4 tar imot den. Kurs og port er bekreftet av control (2026-11-02). Gjenstår hos control: merge mottakeren (finnes på egen gren) inn i `main`, og en modul som leser `c_command` og gir den til regulatorene. Da kan `control_test` kjøres mot regulatoren deres (se [px4.md](px4.md)).
 3. Publiser bøyeposisjoner fra simulatoren (breddegrad og lengdegrad), når autonomy har sagt hvilket topic og hvilken meldingstype noden deres leser.
 4. Sett inn ekte tall for båten når CAD-modell, motorvalg og analyse finnes.
 5. Legg inn ekte plassering og modell for lidar og kamera i `components.yaml` når de er valgt.
