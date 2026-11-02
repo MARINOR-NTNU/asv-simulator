@@ -149,6 +149,7 @@ Testet 2026-11-02 med `scripts/test_control.sh feature/control/motor_writer_conn
 - ✗ Uten RC og uten CCOMMAND går begge akterthrusterne på 100 % (`MotorOutput` 100, 100). Sannsynlig årsak, ikke bekreftet: `transit_controller` sender faste testverdier (`surge = 200`), og `switch_motor_output` sender allokeringens verdier rett ut.
 - ✗ RC-feilen er ikke rettet: motorene står på 40 % etter 8 s uten RC. Da kan ikke CCOMMAND-testen gå videre, så det er ikke testet om CCOMMAND påvirker motorene.
 - Fra koden, ikke testet: ingen modul leser `c_command` (`transit_controller` lytter på `vel_heading_reference`, som bare `dummy_publisher` publiserer), `transit_controller` bruker ikke ønsket kurs og fart, og `transit_controller` sender faste testverdier.
+- `control_test` med `CCOMMAND=true` (kurssprang 90°, 1 m/s, uten RC): verktøyet virker gjennom kjeden, men båten følger ikke ønsket kurs og fart. Avviket er 89,5° etter spranget, og begge motorene ligger fast på 50 N og gir 2,6 m/s. Det stemmer med at `c_command` ikke er koblet til regulatoren.
 - Svar fra control 2026-11-02: tallene fra `thrust_allocator` inn i `MotorOutput` er i prosent, selv om feltene heter `forward_force_*`. Det stemmer med -100..100 i broen, så ingen omregning må endres.
 
 ## Klokka
