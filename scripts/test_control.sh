@@ -2,16 +2,18 @@
 # Tester control sin PX4-kode i simulatoren hele veien til motorene, og skriver ✓ eller ✗ per test.
 #
 #   scripts/test_control.sh                                     # commiten submodulen står på
-#   scripts/test_control.sh feature/control/start_modules_init  # en gren hos control (bare lokalt)
+#   scripts/test_control.sh feature/control/motor_writer_connect  # en gren hos control (bare lokalt)
 #   scripts/test_control.sh --src ~/Flightcontroller-px4        # en egen kopi av koden, også ucommittet
+#   scripts/test_control.sh --rc                                # også RC-testene, kan kombineres med de andre
 #
 # Med --src testes koden i den mappa i stedet for submodulen (via PX4_SRC i docker-compose.yml), så
 # control kan teste endringene sine før de pusher. Byggefilene havner i build/ i den mappa.
 #
-# Starter simulatoren (uten vindu) og PX4 med docker compose, sjekker at modulene til control starter
-# av seg selv, og kjører px4_rc_test (virtuell RC: kraft, retning, baug, vinkel, og at motorene
-# stopper når RC forsvinner). Til slutt sjekkes CCOMMAND: at PX4 tar imot ønsket kurs og fart fra
-# ccommand_bridge, og at regulatoren styrer båten etter dem (px4_ccommand_test).
+# Starter simulatoren (uten vindu) og PX4 med docker compose, og sjekker at modulene til control starter
+# av seg selv. Simuleringen bruker ikke RC, så hovedtesten er CCOMMAND (px4_ccommand_test): at motorene
+# står stille uten kommandoer, at PX4 tar imot ønsket kurs og fart fra ccommand_bridge, at regulatoren
+# styrer båten etter dem, og at motorene stopper når de forsvinner. Med --rc kjøres px4_rc_test etterpå
+# (virtuell RC: kraft, retning, baug, vinkel, og at motorene stopper når RC forsvinner).
 # Submodulen settes tilbake og containerne stoppes til slutt, også ved feil.
 # Avslutter med kode 1 hvis noe feiler, så det kan brukes i skript.
 set -uo pipefail
@@ -21,10 +23,12 @@ cd "$ROOT"
 SUB=px4/Flightcontroller-px4
 REF=""
 SRC=""
+RC=0
 while (( $# )); do
   case "$1" in
     --src) SRC="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
+    --rc) RC=1; shift ;;
+    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) REF="$1"; shift ;;
   esac
 done
@@ -107,21 +111,24 @@ for _ in $(seq 15); do
   sleep 2
 done
 missing=()
-for m in rcPublisher switch_motor_output; do
+unbuilt=()
+modules=(switch_vel_heading transit_controller switch_wrench thrust_allocator switch_motor_output)
+(( RC )) && modules+=(rcPublisher)
+for m in "${modules[@]}"; do
   # En modul som kjører, kan svare med ingenting (rcPublisher), så bare «not running» teller.
-  if px4cmd "$m status" | grep -q "not running"; then
+  status="$(px4cmd "$m status")"
+  if grep -qE "No such file|not found" <<<"$status"; then
+    unbuilt+=("$m")
+  elif grep -q "not running" <<<"$status"; then
     missing+=("$m")
     px4cmd "$m start" >/dev/null
   fi
 done
-if (( ${#missing[@]} )); then
-  fail "Modulene starter ikke av seg selv i SITL: ${missing[*]} (startet for hånd for resten av testene)"
-else
-  ok "rcPublisher og switch_motor_output starter av seg selv"
-fi
+(( ${#unbuilt[@]} )) && fail "Modulene bygges ikke i SITL: ${unbuilt[*]} (mangler i boards/px4/sitl/proteus.px4board?)"
+(( ${#missing[@]} )) && fail "Modulene starter ikke av seg selv i SITL: ${missing[*]} (startet for hånd for resten av testene)"
+(( ${#unbuilt[@]} + ${#missing[@]} )) || ok "Modulene starter av seg selv (${modules[*]})"
 
 ros() { docker compose exec -T vrx bash -c "source /root/vrx_ws/install/setup.bash && ros2 run sim_interface $1"; }
-ros px4_rc_test || FAILED=1
 
 # CCOMMAND: testen sender ønskede verdier, og imens spørres PX4 om den tar imot msgid 50000.
 # mavlink status skriver til PX4-konsollen, ikke tilbake til px4cmd, så svaret leses fra loggen.
@@ -144,8 +151,14 @@ else
   docker compose logs vrx 2>&1 | grep -a "ccommand_bridge" | tail -2 | sed 's/^/      /'
 fi
 wait "$pid" || FAILED=1
-grep -v "^$\|CCOMMAND-testene" "$out"
+grep -v "^$\|CCOMMAND-testene\|ros2run" "$out"
 rm -f "$out"
+
+# Etter CCOMMAND, så en motor som står igjen fra RC-testen, ikke ser ut som kraft fra CCOMMAND.
+if (( RC )); then
+  echo "RC (bare med --rc)"
+  ros px4_rc_test || FAILED=1
+fi
 
 echo
 if (( FAILED )); then

@@ -6,7 +6,8 @@ Kjøres i simulator-containeren mens simulatoren, PX4 og ccommand_bridge kjører
 
 Sender ønsket kurs 90° fra der båten peker og 1 m/s på /autonomy/desired/..., som ccommand_bridge
 sender til PX4 som CCOMMAND. Sjekker at PX4 gir motorkraft, at båten snur til ønsket kurs og holder
-farten, og at motorene stopper når de ønskede verdiene forsvinner. RC er av hele tiden.
+farten, og at motorene stopper når de ønskede verdiene forsvinner. Motorene skal stå stille før
+CCOMMAND sendes. RC er av hele tiden.
 Avslutter med kode 1 hvis noen test feiler.
 """
 import math
@@ -72,32 +73,30 @@ class Px4CcommandTest:
             self.check(False, 'Mangler /autonomy/heading. Kjører simulatoren?')
             return False
 
-        # Sender fra første stund, så test_control.sh kan sjekke at PX4 tar imot CCOMMAND selv om
-        # resten av kjeden ikke virker.
-        print(f'Ønsket kurs {math.degrees(TURN):.0f}° fra der båten peker, {SPEED:g} m/s, RC av')
-        target = self.values['/autonomy/heading'] + TURN
         idle = self.thrust() < 1.0
+        if self.motor is not None:
+            self.check(idle, f'Motorene står stille uten kommandoer ({self.thrust():g} %)')
+
+        # Sender selv om noe over feilet, så test_control.sh kan sjekke at PX4 tar imot CCOMMAND.
+        print(f'Ønsket kurs {math.degrees(TURN):.0f}° fra der båten peker, {SPEED:g} m/s, uten RC')
+        target = self.values['/autonomy/heading'] + TURN
         self.desired = (target, SPEED)
-        if not idle:
-            # Ellers ser kraft som er igjen fra RC-testen ut som kraft fra CCOMMAND.
-            self.spin(15.0)
-            self.check(False, f'Motorene går allerede før CCOMMAND sendes ({self.thrust():g} %), så '
-                              'kraft fra CCOMMAND kan ikke testes. Følger trolig av at motorene ikke '
-                              'stopper når RC forsvinner.')
-            self.desired = None
-            return False
-        took = self.spin(15.0, until=lambda: self.thrust() >= 1.0)
-        if took is None:
-            why = ('PX4 sender ingen MotorOutput (switch_motor_output startet?)' if self.motor is None
-                   else 'PX4 gir ingen motorkraft fra CCOMMAND')
-            self.check(False, f'{why} etter 15 s. PX4 trenger en mottaker for CCOMMAND og en vei fra '
-                              'den til regulatorene og MotorOutput.')
-            print('  ✗ Kursen nås (følger av feilen over)')
-            print('  ✗ Farten holdes (følger av feilen over)')
-            print('  ✗ Motorene stopper når CCOMMAND forsvinner (følger av feilen over)')
-            self.desired = None
-            return False
-        self.check(True, f'PX4 gir motorkraft fra CCOMMAND (etter {took:.1f} s)')
+        if idle:
+            took = self.spin(15.0, until=lambda: self.thrust() >= 1.0)
+            if took is None:
+                why = ('PX4 sender ingen MotorOutput (switch_motor_output startet?)' if self.motor is None
+                       else 'PX4 gir ingen motorkraft fra CCOMMAND')
+                self.check(False, f'{why} etter 15 s. PX4 trenger en mottaker for CCOMMAND og en vei fra '
+                                  'den til regulatorene og MotorOutput.')
+                print('  ✗ Kursen nås (følger av feilen over)')
+                print('  ✗ Farten holdes (følger av feilen over)')
+                print('  ✗ Motorene stopper når CCOMMAND forsvinner (følger av feilen over)')
+                self.desired = None
+                return False
+            self.check(True, f'PX4 gir motorkraft fra CCOMMAND (etter {took:.1f} s)')
+        else:
+            # Kraft som allerede går, kan ikke skilles fra kraft fra CCOMMAND.
+            print('  – Hopper over «PX4 gir motorkraft fra CCOMMAND», fordi motorene allerede går')
 
         error = lambda: abs(angle_diff(self.values['/autonomy/heading'], target))  # noqa: E731
         took = self.spin(40.0, until=lambda: error() < HEADING_LIMIT)
@@ -120,9 +119,9 @@ class Px4CcommandTest:
         if took is None:
             self.check(False, f'Motorene går fortsatt etter 8 s uten CCOMMAND ({self.thrust():g} %).')
         else:
-            # Ikke avtalt med control. Forslag: som RC, 0,5 s timeout pluss margin.
+            # Avtalt med control: 0,5 s timeout, stopp innen 1,5 s.
             self.check(took <= 1.5, f'Motorene stopper når CCOMMAND forsvinner (etter {took:.1f} s, '
-                                    'krav 1,5 s, ikke avtalt med control ennå)')
+                                    'krav 1,5 s)')
         return not self.failed
 
 
