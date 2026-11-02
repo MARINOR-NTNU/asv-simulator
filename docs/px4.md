@@ -152,6 +152,11 @@ Testet 2026-11-02 med `scripts/test_control.sh feature/control/motor_writer_conn
 - `control_test` med `CCOMMAND=true` (kurssprang 90°, 1 m/s, uten RC): verktøyet virker gjennom kjeden, men båten følger ikke ønsket kurs og fart. Avviket er 89,5° etter spranget, og begge motorene ligger fast på 50 N og gir 2,6 m/s. Det stemmer med at `c_command` ikke er koblet til regulatoren.
 - Svar fra control 2026-11-02: tallene fra `thrust_allocator` inn i `MotorOutput` er i prosent, selv om feltene heter `forward_force_*`. Det stemmer med -100..100 i broen, så ingen omregning må endres.
 
+### Ny commit `e7de1bd48f`: `switch_vel_heading`
+Testet 2026-11-02 med `scripts/test_control.sh feature/control/motor_writer_connect`. Modulen leser `c_command` og RC og publiserer `vel_heading_reference`, så bruddet er koblet i koden. Samme testresultat som over.
+- ✗ Modulen bygges ikke i SITL: `CONFIG_MODULES_SWITCH_VEL_HEADING=y` står bare i `boards/px4/fmu-v6c/proteus.px4board`, ikke i `boards/px4/sitl/proteus.px4board`, og `px4-switch_vel_heading` mangler i `build/px4_sitl_proteus/bin`. `rcS` prøver likevel å starte den.
+- Fra koden, ikke testet: `switch_vel_heading` bruker `copy()` uten å sjekke alder, så siste `CCOMMAND` kan gjelde for alltid, og tidsgrensen er `0.5*10E6` (5 s). `transit_controller` sender fortsatt `surge = 200`.
+
 ## Klokka
 Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10-26: med `none_iris` får PX4 tiden sin fra `HIL_SENSOR` som `px4_hil_bridge` sender med simuleringstiden (lockstep). PX4 følger derfor simulatoren også når den går saktere eller fortere enn sanntid. Gazebo med vår båt går på 0,99 av sanntid.
 
