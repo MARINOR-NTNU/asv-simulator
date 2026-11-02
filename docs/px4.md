@@ -143,6 +143,14 @@ Laget 2026-11-01. På båten sender jetson ønskede verdier til PX4 som MAVLink-
 - Mottakeren finnes på `feature/control/mavlinkcommunicationwithcompanioncomputer` (`88e8f37798`, 2026-10-20): `handle_message_ccommand` i `mavlink_receiver.cpp` publiserer uORB `c_command`. Den er ikke merget inn i `main` eller `start_modules_init`, og grenen er eldre enn `sitl_proteus`. Ingen modul på noen gren abonnerer på `c_command` ennå, så regulatorene får ikke verdiene.
 - Testet 2026-11-02 i en lokal kopi (ikke pushet): `main` + `start_modules_init` (`6b83b40fa7`) + mottakergrenen. Eneste konflikt var beskrivelsen av `CCOMMAND` i `custom.xml` (feltene er like). Bygger, og `listener c_command` i PX4 viser det `ccommand_bridge` sender (`desired_speed: 1.0`, `desired_course: 1.5708` for kurs mot øst, `control_mode: 0`). `test_control.sh --src`: alt ✓ unntatt sikkerhetstesten for RC, og CCOMMAND-testen kan ikke gå videre fordi motorene fortsatt går fra RC-testen.
 
+## Grenen `feature/control/motor_writer_connect` (`d59e4f4469`)
+Testet 2026-11-02 med `scripts/test_control.sh feature/control/motor_writer_connect`, bare lokalt. Grenen samler `start_modules_init`, mottakeren for CCOMMAND, regulatorene og thrust-allokeringen, og er ikke i `main` ennå.
+- ✓ PX4 bygger, modulene starter av seg selv, RC-veien stemmer (kraft, fortegn, baug, vinkel), og PX4 tar imot CCOMMAND (10 Hz).
+- ✗ Uten RC og uten CCOMMAND går begge akterthrusterne på 100 % (`MotorOutput` 100, 100). Sannsynlig årsak, ikke bekreftet: `transit_controller` sender faste testverdier (`surge = 200`), og `switch_motor_output` sender allokeringens verdier rett ut.
+- ✗ RC-feilen er ikke rettet: motorene står på 40 % etter 8 s uten RC. Da kan ikke CCOMMAND-testen gå videre, så det er ikke testet om CCOMMAND påvirker motorene.
+- Fra koden, ikke testet: ingen modul leser `c_command` (`transit_controller` lytter på `vel_heading_reference`, som bare `dummy_publisher` publiserer), `transit_controller` bruker ikke ønsket kurs og fart, og `transit_controller` sender faste testverdier.
+- Svar fra control 2026-11-02: tallene fra `thrust_allocator` inn i `MotorOutput` er i prosent, selv om feltene heter `forward_force_*`. Det stemmer med -100..100 i broen, så ingen omregning må endres.
+
 ## Klokka
 Control vil helst at PX4 følger simulatorens klokke (2026-10-19). Løst 2026-10-26: med `none_iris` får PX4 tiden sin fra `HIL_SENSOR` som `px4_hil_bridge` sender med simuleringstiden (lockstep). PX4 følger derfor simulatoren også når den går saktere eller fortere enn sanntid. Gazebo med vår båt går på 0,99 av sanntid.
 
