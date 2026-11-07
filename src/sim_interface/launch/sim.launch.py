@@ -1,0 +1,117 @@
+"""Starter simulatoren og grensesnittet, med valg for hva som står for autonomy og control.
+
+  sim:=vrx_asv | vrx            vår båt (standard) eller WAM-V
+  world:=open_water | sydney_regatta   verdenen til vår båt i Gazebo (sim:=vrx_asv)
+  scenario:=<navn>              ting som settes inn i verdenen, fra asv_gazebo/scenarios/ (sim:=vrx_asv)
+  sensor_noise:=true            støy på IMU og GPS (sim:=vrx_asv)
+  wind_speed:=5                 vind i m/s, med wind_direction og wind_gust (open_water)
+  wave_height:=0.3              største bølgeutslag i m, med wave_period og wave_direction (open_water)
+  current_speed:=0.5            strøm i m/s, med current_direction (sim:=vrx_asv)
+  thrust_time_constant:=0.3     treghet i motorene, sekunder
+  control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
+  autonomy:=none | fake | path  ingen, fake_heading, eller waypoint_follower
+  ccommand:=true                control:=px4: ønsket kurs og fart til PX4 som CCOMMAND (ccommand_bridge)
+
+control er ett valg, så stub_controller og PX4 kan ikke styre motorene samtidig.
+"""
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
+from launch.conditions import IfCondition, LaunchConfigurationEquals
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
+
+
+def include(package, name, arguments, condition=None):
+    path = PathJoinSubstitution([FindPackageShare(package), 'launch', name])
+    return IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(path), launch_arguments=arguments.items(),
+        condition=condition)
+
+
+def generate_launch_description():
+    def arg(name):
+        return LaunchConfiguration(name)
+
+    def number(name):
+        return ParameterValue(arg(name), value_type=float)
+
+    def when(name, value):
+        return LaunchConfigurationEquals(name, value)
+
+    share = FindPackageShare('sim_interface')
+    config = PathJoinSubstitution([share, 'config', [arg('sim'), '.yaml']])
+    path = PathJoinSubstitution([share, 'config', [arg('path'), '.yaml']])
+    sim_time = {'use_sim_time': True}
+
+    return LaunchDescription([
+        DeclareLaunchArgument('sim', default_value='vrx_asv', choices=['vrx_asv', 'vrx']),
+        DeclareLaunchArgument('headless', default_value='false', description='true = uten Gazebo-vindu'),
+        DeclareLaunchArgument(
+            'world', default_value='open_water', choices=['open_water', 'sydney_regatta'],
+            description='sim:=vrx_asv: åpent hav uten land, eller VRX sin sydney_regatta'),
+        DeclareLaunchArgument(
+            'scenario', default_value='none',
+            description='sim:=vrx_asv: scenario fra asv_gazebo/scenarios/, f.eks. slalom. none = ingen'),
+        DeclareLaunchArgument('sensor_noise', default_value='false', description='true = støy på IMU og GPS'),
+        DeclareLaunchArgument('current_speed', default_value='0', description='m/s, strøm'),
+        DeclareLaunchArgument('current_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
+        DeclareLaunchArgument('wave_height', default_value='0.11', description='m, største bølgeutslag (open_water)'),
+        DeclareLaunchArgument('wave_period', default_value='5', description='s (open_water)'),
+        DeclareLaunchArgument('wave_direction', default_value='0.0', description='rad (open_water)'),
+        DeclareLaunchArgument('wind_speed', default_value='0', description='m/s, bare world:=open_water'),
+        DeclareLaunchArgument('wind_direction', default_value='0', description='grader, 0 = mot øst, 90 = mot nord'),
+        DeclareLaunchArgument('wind_gust', default_value='0', description='hvor mye vinden varierer, 0 = jevn'),
+        DeclareLaunchArgument('thrust_time_constant', default_value='',
+                              description='sekunder, treghet i motorene. Tom = verdien i config'),
+        DeclareLaunchArgument('control', default_value='none', choices=['none', 'stub', 'px4']),
+        DeclareLaunchArgument('autonomy', default_value='none', choices=['none', 'fake', 'path']),
+        DeclareLaunchArgument('heading', default_value='0.0', description='autonomy:=fake, radianer ENU'),
+        DeclareLaunchArgument('speed', default_value='1.0', description='autonomy:=fake, m/s'),
+        DeclareLaunchArgument('sweep_rate', default_value='0.0', description='autonomy:=fake'),
+        DeclareLaunchArgument('path', default_value='path_demo', description='autonomy:=path'),
+        DeclareLaunchArgument(
+            'forward_thruster', default_value='',
+            description='control:=px4: motoren forward_propeller_thrust sendes til, f.eks. bow'),
+        DeclareLaunchArgument('agent_port', default_value='8888', description='control:=px4'),
+        DeclareLaunchArgument('ccommand', default_value='false',
+                              description='control:=px4: ønsket kurs og fart til PX4 som CCOMMAND'),
+
+        # Simulatoren
+        include('asv_gazebo', 'asv.launch.py',
+                {'headless': arg('headless'), 'world': arg('world'), 'sensor_noise': arg('sensor_noise'),
+                 'wind_speed': arg('wind_speed'), 'wind_direction': arg('wind_direction'),
+                 'wind_gust': arg('wind_gust'), 'current_speed': arg('current_speed'),
+                 'current_direction': arg('current_direction'), 'wave_height': arg('wave_height'),
+                 'wave_period': arg('wave_period'), 'wave_direction': arg('wave_direction')},
+                when('sim', 'vrx_asv')),
+        include('asv_gazebo', 'scenario.launch.py',
+                {'scenario': arg('scenario'), 'world': arg('world')},
+                IfCondition(PythonExpression(
+                    ["'", arg('scenario'), "' not in ('', 'none') and '", arg('sim'), "' == 'vrx_asv'"]))),
+        include('vrx_gz', 'competition.launch.py',
+                {'world': 'sydney_regatta', 'headless': arg('headless')}, when('sim', 'vrx')),
+
+        # Grensesnittet (thruster_adapter, sensor_relay, heading_node, speed_node)
+        include('sim_interface', 'sim_interface.launch.py',
+                {'sim': arg('sim'), 'thrust_time_constant': arg('thrust_time_constant')}),
+
+        # Autonomy
+        Node(package='sim_interface', executable='fake_heading', condition=when('autonomy', 'fake'),
+             parameters=[{**sim_time, 'heading': number('heading'), 'speed': number('speed'),
+                          'sweep_rate': number('sweep_rate')}]),
+        Node(package='sim_interface', executable='waypoint_follower',
+             condition=when('autonomy', 'path'), parameters=[path, sim_time]),
+
+        # Control
+        Node(package='sim_interface', executable='stub_controller', condition=when('control', 'stub'),
+             parameters=[config, sim_time]),
+        include('sim_interface', 'px4_bridge.launch.py',
+                {'forward_thruster': arg('forward_thruster'), 'ccommand': arg('ccommand')},
+                when('control', 'px4')),
+        ExecuteProcess(
+            cmd=['MicroXRCEAgent', 'udp4', '-p', arg('agent_port')], output='screen',
+            condition=when('control', 'px4')),
+    ])

@@ -1,0 +1,24 @@
+# Backend for Unity. IKKE TESTET: topic-navn, skalering og grenser er plassholdere
+# og må fylles inn når vi vet hvilken Unity-simulator vi bruker.
+# Unity må publisere /clock, og meldingene må være i ROS-konvensjon (ENU, x frem, z opp).
+thruster_adapter:
+  ros__parameters:
+    thrust_topic: /unity/thruster/{side}/thrust
+    angle_topic: ''      # tom = faste motorer
+    max_thrust: 100.0
+    max_angle: 0.0
+    thrust_scale: 1.0    # f.eks. 1/max_thrust hvis Unity vil ha -1..1
+    angle_scale: 1.0
+    timeout: 0.5
+
+sensor_relay:
+  ros__parameters:
+    inputs:
+      - /unity/imu
+      - /unity/gps
+    outputs:
+      - /autonomy/imu
+      - /autonomy/gps/fix
+    types:
+      - sensor_msgs/msg/Imu
+      - sensor_msgs/msg/NavSatFix

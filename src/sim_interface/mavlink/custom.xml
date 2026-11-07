@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!-- Kopi av custom_messages/custom.xml i control sin PX4-fork, uten <include>. Laget av scripts/sync_px4_msgs.sh. -->
+<mavlink>
+  <messages>
+    <message id="50000" name="CCOMMAND">
+      <description>Movement commands from the jetson</description>
+      <field type="double" name="desired_speed">Desired speed</field>
+      <field type="double" name="desired_course">Desired course</field>
+      <field type="double[2]" name="desired_pos">Desired position</field>
+      <field type="double[3]" name="desired_wrench">Desired wrench</field>
+      <field type="double[5]" name="desired_motor_output">Desired motor output</field>
+      <field type="uint8_t" name="control_mode">0=VELOCITYHEADING, 1=WRENCH, 2=MOTOR_OUTPUT</field>
+      <field type="uint8_t" name="is_ground_controlled">0 or 1</field>
+    </message>
+  </messages>
+</mavlink>

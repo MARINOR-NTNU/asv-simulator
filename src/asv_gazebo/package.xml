@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>asv_gazebo</name>
+  <version>0.1.0</version>
+  <description>Gazebo-modell av vår egen ASV, til bruk i VRX-verdenene.</description>
+  <maintainer email="christufte@icloud.com">chris</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <depend>xacro</depend>
+  <exec_depend>vrx_gz</exec_depend>
+  <exec_depend>asv_hydrodynamics</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

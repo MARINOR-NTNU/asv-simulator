@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<!--
+  Vår egen ASV. model.sdf lages fra denne fila når pakken bygges (CMakeLists.txt), så rediger her
+  og i xacro/, ikke i model.sdf.
+  - xacro/parameters.xacro: alle tall som skal byttes ut med ekte verdier
+  - xacro/thrusters.xacro: thrusterne
+  - xacro/sensors.xacro: sensorene
+  - components.yaml: komponentene om bord (batteri, elektronikk osv.), innenfor totalvekten
+  - xacro/components.xacro: lager komponentene fra components.yaml
+
+  Skrogfilen skrog10-1.stl er delt i skrog, thrusterhus og propeller (meshes/), slik at
+  thrusterne dreier og propellene snurrer synlig. Meshene brukes bare til visning. Fysikken er
+  beskrevet med tall og enkle former.
+-->
+<sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Valg når modellen lages (asv.launch.py sender dem videre fra sim.launch.py). -->
+  <xacro:arg name="sensor_noise" default="false"/>
+  <xacro:property name="sensor_noise" value="$(arg sensor_noise)"/>
+  <!-- Strøm: fart i m/s og retningen den går mot, i grader (0 = mot øst, 90 = mot nord). -->
+  <xacro:arg name="current_speed" default="0"/>
+  <xacro:arg name="current_direction" default="0"/>
+
+  <xacro:include filename="xacro/parameters.xacro"/>
+  <xacro:include filename="xacro/thrusters.xacro"/>
+  <xacro:include filename="xacro/sensors.xacro"/>
+  <xacro:include filename="xacro/components.xacro"/>
+
+  <!-- Skroget får det som er igjen av totalvekten, så totalen alltid er total_mass. -->
+  <xacro:property name="fixed_parts_mass" value="${2 * pod_mass + 3 * prop_mass + hydro_mass}"/>
+  <xacro:property name="hull_mass" value="${total_mass - components_mass - fixed_parts_mass}"/>
+  <xacro:if value="${hull_mass &lt;= 0}">
+    ${xacro.error('Komponentene og sensorene i components.yaml (%.1f kg) og thrusterne (%.1f kg) veier mer enn total_mass (%.1f kg).' % (components_mass, fixed_parts_mass, total_mass))}
+    <!-- xacro.error stopper ikke, så navnet under (som ikke finnes) stopper xacro og bygget. -->
+    ${STOPP_komponentene_er_for_tunge}
+  </xacro:if>
+  <xacro:property name="hull_share" value="${hull_mass / total_mass}"/>
+
+  <model name="asv">
+
+    <link name="base_link">
+      <inertial>
+        <pose>${hull_cog} 0 0 0</pose>
+        <mass>${hull_mass}</mass>
+        <inertia>
+          <ixx>${hull_ixx * hull_share}</ixx><iyy>${hull_iyy * hull_share}</iyy><izz>${hull_izz * hull_share}</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+
+      <visual name="hull_visual">
+        <geometry>
+          <mesh>
+            <uri>model://asv/meshes/hull.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.8 0.8 0.8 1</ambient>
+          <diffuse>0.8 0.8 0.8 1</diffuse>
+          <specular>0.2 0.2 0.2 1</specular>
+        </material>
+      </visual>
+
+      <!-- Kollisjon er en enkel boks rundt skroget, ikke selve meshen. -->
+      <collision name="hull_collision">
+        <pose>0 0 -0.065 0 0 0</pose>
+        <geometry>
+          <box><size>1.5 0.5 0.37</size></box>
+        </geometry>
+      </collision>
+
+      <xacro:imu/>
+      <xacro:gps/>
+    </link>
+
+    <link name="hydro_link">
+      <pose>${hydro_pose} 0 0 0</pose>
+      <inertial>
+        <mass>${hydro_mass}</mass>
+        <inertia><ixx>0.0001</ixx><iyy>0.0001</iyy><izz>0.0001</izz><ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+    </link>
+    <joint name="hydro_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>hydro_link</child>
+    </joint>
+
+    <!-- Komponentene fra components.yaml (batteri, elektronikk osv.). -->
+    <xacro:all_components items="${components}"/>
+    <!-- Sensorene fra components.yaml (lidar, kamera), med plassering. -->
+    <xacro:all_sensors items="${sensors}"/>
+
+    <xacro:steerable_thruster side="left" y_sign="1"/>
+    <xacro:steerable_thruster side="right" y_sign="-1"/>
+    <xacro:bow_thruster/>
+
+    <!-- Oppdrift: rutenettet av bokser fra parameters.xacro, én <buoyancy> per boks. -->
+    <xacro:macro name="buoyancy_grid" params="cells">
+      <xacro:if value="${len(cells) > 0}">
+        <xacro:property name="i" value="${cells[0][0]}"/>
+        <xacro:property name="j" value="${cells[0][1]}"/>
+        <xacro:property name="dx" value="${buoyancy_length / buoyancy_nx}"/>
+        <xacro:property name="dy" value="${buoyancy_width / buoyancy_ny}"/>
+        <buoyancy name="hull_buoyancy_${i}_${j}">
+          <link_name>base_link</link_name>
+          <pose>${buoyancy_x - buoyancy_length / 2 + dx * (i + 0.5)} ${-buoyancy_width / 2 + dy * (j + 0.5)} ${buoyancy_z} 0 0 0</pose>
+          <geometry>
+            <box><size>${dx} ${dy} ${buoyancy_height}</size></box>
+          </geometry>
+        </buoyancy>
+        <xacro:buoyancy_grid cells="${cells[1:]}"/>
+      </xacro:if>
+    </xacro:macro>
+    <plugin name="vrx::PolyhedraBuoyancyDrag" filename="libPolyhedraBuoyancyDrag.so">
+      <fluid_density>1000</fluid_density>
+      <fluid_level>0.0</fluid_level>
+      <!-- Motstanden her er lik i alle retninger, så den er slått av. All motstand ligger i
+           SimpleHydrodynamics under, der hver retning har sine egne tall. -->
+      <linear_drag>0.0</linear_drag>
+      <angular_drag>0.0</angular_drag>
+      <xacro:buoyancy_grid cells="${[(i, j) for i in python.range(buoyancy_nx) for j in python.range(buoyancy_ny)]}"/>
+      <wavefield>
+        <topic>/vrx/wavefield/parameters</topic>
+      </wavefield>
+    </plugin>
+
+    <!-- Motstand i vannet, angriper i hydro_link. Tallene og hvordan de er regnet ut, står i
+         parameters.xacro. Pluginen er VRX sin SimpleHydrodynamics med strøm lagt til
+         (asv_hydrodynamics): motstanden regnes ut fra farten gjennom vannet. -->
+    <plugin name="asv::CurrentHydrodynamics" filename="libCurrentHydrodynamics.so">
+      <link_name>hydro_link</link_name>
+      <current_speed>$(arg current_speed)</current_speed>
+      <current_direction>$(arg current_direction)</current_direction>
+      <xDotU>${xDotU}</xDotU>
+      <yDotV>${yDotV}</yDotV>
+      <nDotR>${nDotR}</nDotR>
+      <xU>${xU}</xU>
+      <xUU>${xUU}</xUU>
+      <yV>${yV}</yV>
+      <yVV>${yVV}</yVV>
+      <zW>${zW}</zW>
+      <kP>${kP}</kP>
+      <kPP>${kPP}</kPP>
+      <mQ>${mQ}</mQ>
+      <mQQ>${mQQ}</mQQ>
+      <nR>${nR}</nR>
+      <nRR>${nRR}</nRR>
+    </plugin>
+
+    <!-- Publiserer leddvinklene, blant annet hvor thrusterne peker. -->
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher"/>
+
+  </model>
+</sdf>

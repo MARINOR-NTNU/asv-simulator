@@ -1,0 +1,49 @@
+# Koblingen mot control sin PX4 via uXRCE-DDS. Uavhengig av hvilken simulator som kjører.
+px4_motor_bridge:
+  ros__parameters:
+    motor_output_topic: /fmu/out/motor_output
+    # Sendt videre = (verdi - offset) * scale. Control sender thrust som -100..100 % (2026-10-19),
+    # så scale = maks thrust / 100. Maks thrust er anslag for vår båt (50 N akter, 25 N baug).
+    # Positiv baugthrust hos control skyver baugen mot styrbord, i kontrakten mot babord: derfor minus.
+    # Med WAM-V (2353 N) må stern_thrust_scale settes til ca. 23,5.
+    thrust_offset: 0.0
+    stern_thrust_scale: 0.5
+    forward_thrust_scale: -0.25
+    # Bakover (negativ verdi fra control) gir akterthrusterne 60 % av kraften forover (control, 2026-10-19),
+    # så -100 % blir -30 N. Baugthrusteren er like sterk begge veier.
+    stern_reverse_ratio: 0.6
+    forward_reverse_ratio: 1.0
+    # Vinklene kommer som -100..100 fra control (rcPublisher, 2026-10-26), der 100 = 90° mot babord
+    # sett bakfra. Kontrakten (/control/thruster/*/angle) er radianer, så scale = (pi/2) / 100.
+    angle_offset: 0.0
+    angle_scale: 0.015707963
+    forward_thruster: ''   # tom = forward_propeller_thrust ignoreres (WAM-V har ingen)
+
+px4_seapath_bridge:
+  ros__parameters:
+    seapath_topic: /fmu/in/seapath_data
+    rate: 50.0   # Hz. Hvor ofte den ekte Seapath-en sender, er ikke avklart.
+    tau: 0.5     # sekunder, glatting av farten fra GPS
+    heave_tau: 20.0   # sekunder, middelhøyden heave regnes fra
+
+px4_hil_bridge:
+  ros__parameters:
+    port: 4560   # TCP-porten PX4 i SITL kobler seg til (simulator_mavlink)
+    # Jordas magnetfelt i NED, gauss. PX4 sammenligner med sin modell for GPS-posisjonen, så det
+    # må passe med stedet. Dette er sydney_regatta (ca. 0,57 G, inklinasjon -64°, deklinasjon 12,5°).
+    mag_ned: [0.244, 0.054, -0.512]
+    tau: 0.5     # sekunder, glatting av farten fra GPS
+    # Virtuell RC-sender: pulsbredde i µs per kanal, sendt til PX4 som RC_CHANNELS. [0] = ingen RC.
+    # Kanaler hos control (rcPublisher): 0 baug, 1 babord, 2 styrbord, 3 vinkel, 6 modus (SC),
+    # 7 manuell (SD). Manuell motorstyring: [1500, 1500, 1500, 1500, 1500, 1500, 1800, 1800].
+    rc_channels: [0]
+
+ccommand_bridge:
+  ros__parameters:
+    # Startes med ccommand:=true. PX4 i SITL tar imot fra jetson på UDP 14580.
+    host: 127.0.0.1
+    port: 14580
+    rate: 10.0       # Hz
+    timeout: 0.5     # sekunder: eldre ønskede verdier sendes ikke (som kontrakten mot control)
+    control_mode: 0  # 0 = VELOCITYHEADING, 1 = WRENCH, 2 = MOTOR_OUTPUT (custom.xml)
+    is_ground_controlled: 0

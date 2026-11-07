@@ -1,0 +1,9 @@
+# Holder PX4-submodulen (flere GB) og byggemapper utenfor byggekonteksten til begge imagene.
+# Dockerfile.px4 trenger bare requirements.txt fra PX4.
+px4/
+!px4/Flightcontroller-px4/Tools/setup/requirements.txt
+build/
+install/
+log/
+build.log
+.git/

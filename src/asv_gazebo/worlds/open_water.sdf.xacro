@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<!--
+  Åpent hav uten land: bare vannflaten fra VRX (6 x 6 km), bølger, sol og himmel. open_water.sdf
+  lages fra denne fila når asv_gazebo bygges. Bøyer og andre ting settes inn etterpå.
+
+  Båten starter i origo. GPS-origo er stedet båten startet i sydney_regatta, så GPS, kompasset
+  i px4_hil_bridge (mag_ned) og baner med fast origin stemmer med begge verdenene.
+-->
+<sdf version="1.9" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Valg når verdenen lages (asv.launch.py sender dem videre fra sim.launch.py).
+       wind_speed: middelvind i m/s, 0 = ingen vind. wind_direction: retningen vinden blåser mot,
+       i grader (0 = mot øst, 90 = mot nord). wind_gust: hvor mye vinden varierer (0 = jevn). -->
+  <xacro:arg name="wind_speed" default="0"/>
+  <xacro:arg name="wind_direction" default="0"/>
+  <xacro:arg name="wind_gust" default="0"/>
+  <xacro:property name="wind_speed" value="$(arg wind_speed)"/>
+
+  <!-- Vindkraften på båten (VRX USVWind): F = koeffisient * relativ vindfart * |relativ vindfart|,
+       per akse i verden. ANSLAG: 0,5 * lufttetthet * Cd * areal over vannet (ca. 1,5 x 0,27 m
+       fra siden), Cd ca. 1. -->
+  <xacro:property name="wind_coeff" value="0.15 0.15 0.05"/>
+
+  <!-- GPS-posisjonen til origo -->
+  <xacro:property name="latitude" value="-33.722768768890596"/>
+  <xacro:property name="longitude" value="150.67399110173986"/>
+
+  <!-- Bølger (Gerstner-bølger i VRX), valg ved oppstart. wave_gain er en skaleringsfaktor i VRX sin
+       bølgemodell (Pierson-Moskowitz), ikke høyden. asv.launch.py regner den ut fra wave_height
+       (største utslag i meter). wave_period i sekunder, wave_direction i radianer, wave_steepness
+       0-1. Standard er som sydney_regatta (gain 0,3, periode 5 s, største utslag ca. 0,11 m). -->
+  <xacro:arg name="wave_gain" default="0.3"/>
+  <xacro:arg name="wave_period" default="5"/>
+  <xacro:arg name="wave_direction" default="0.0"/>
+  <xacro:arg name="wave_steepness" default="0"/>
+  <xacro:property name="wave_gain" value="$(arg wave_gain)"/>
+  <xacro:property name="wave_period" value="$(arg wave_period)"/>
+  <xacro:property name="wave_direction" value="$(arg wave_direction)"/>
+  <xacro:property name="wave_steepness" value="$(arg wave_steepness)"/>
+
+  <xacro:macro name="wave_param" params="key value">
+    params {
+      key: "${key}"
+      value {
+        type: DOUBLE
+        double_value: ${value}
+      }
+    }
+  </xacro:macro>
+
+  <world name="open_water">
+
+    <physics name="4ms" type="dart">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Uten <gui> bruker Gazebo standardvinduet. -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-magnetometer-system" name="gz::sim::systems::Magnetometer"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
+
+    <scene>
+      <sky></sky>
+      <grid>false</grid>
+      <ambient>1.0 1.0 1.0</ambient>
+      <background>0.8 0.8 0.8</background>
+    </scene>
+
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>${latitude}</latitude_deg>
+      <longitude_deg>${longitude}</longitude_deg>
+      <elevation>0.0</elevation>
+      <heading_deg>0.0</heading_deg>
+    </spherical_coordinates>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Vannflaten, 6 x 6 km: VRX sin coast_waves, men skrevet inn her med bølgeparametrene i
+         <wavefield>. WaveVisual sender bølgene til grafikkortet bare én gang, før parametrene på
+         topicen kommer. Uten dette viser bildet VRX sine standardbølger (gain 1, periode 5 s), mens
+         fysikken bruker de riktige, og båten ser ut som den er under vann. -->
+    <model name="water">
+      <static>true</static>
+      <link name="link">
+        <visual name="wave_visual">
+          <!-- Eget mesh med 1 m mellom punktene rundt båten (scripts/make_ocean_mesh.py). VRX sitt
+               har ca. 19 m, og da tegnes bølgene rundt en så liten båt helt feil. -->
+          <geometry><mesh><uri>model://ocean/meshes/ocean.obj</uri></mesh></geometry>
+          <plugin filename="libWaveVisual.so" name="vrx::WaveVisual">
+            <shader>
+              <vertex>model://coast_waves/materials/programs/GerstnerWaves_vs_330.glsl</vertex>
+              <fragment>model://coast_waves/materials/programs/GerstnerWaves_fs_330.glsl</fragment>
+              <parameters>
+                <rescale>0.125</rescale>
+                <bumpScale>75 75</bumpScale>
+                <bumpSpeed>0.01 0.0</bumpSpeed>
+                <hdrMultiplier>0.4</hdrMultiplier>
+                <fresnelPower>5.0</fresnelPower>
+                <shallowColor>0 0.1 0.2 1.0</shallowColor>
+                <deepColor>0 0.05 0.2 1.0</deepColor>
+              </parameters>
+            </shader>
+            <wavefield>
+              <topic>/vrx/wavefield/parameters</topic>
+              <wave>
+                <model>PMS</model>
+                <period>${wave_period}</period>
+                <direction>${wave_direction}</direction>
+                <steepness>${wave_steepness}</steepness>
+                <gain>${wave_gain}</gain>
+              </wave>
+            </wavefield>
+          </plugin>
+          <visibility_flags>8</visibility_flags>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Bølgene. Oppdriften til båten og bøyene leser dem fra samme topic. -->
+    <plugin filename="libPublisherPlugin.so" name="vrx::PublisherPlugin">
+      <message type="gz.msgs.Param" topic="/vrx/wavefield/parameters" every="2.0">
+        <xacro:wave_param key="direction" value="${wave_direction}"/>
+        <xacro:wave_param key="gain" value="${wave_gain}"/>
+        <xacro:wave_param key="period" value="${wave_period}"/>
+        <xacro:wave_param key="steepness" value="${wave_steepness}"/>
+      </message>
+    </plugin>
+
+    <xacro:if value="${float(wind_speed) > 0}">
+      <plugin filename="libUSVWind.so" name="vrx::USVWind">
+        <wind_obj>
+          <name>asv</name>
+          <link_name>base_link</link_name>
+          <coeff_vector>${wind_coeff}</coeff_vector>
+        </wind_obj>
+        <wind_direction>$(arg wind_direction)</wind_direction>
+        <wind_mean_velocity>${wind_speed}</wind_mean_velocity>
+        <var_wind_gain_constants>$(arg wind_gust)</var_wind_gain_constants>
+        <var_wind_time_constants>2</var_wind_time_constants>
+        <random_seed>10</random_seed>
+        <update_rate>10</update_rate>
+        <topic_wind_speed>/vrx/debug/wind/speed</topic_wind_speed>
+        <topic_wind_direction>/vrx/debug/wind/direction</topic_wind_direction>
+      </plugin>
+    </xacro:if>
+
+  </world>
+</sdf>
