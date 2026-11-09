@@ -2,6 +2,8 @@
 
 Felles VRX-simulator for gruppen, kjørt lokalt i Docker: Ubuntu 22.04, ROS 2 Humble, Gazebo Garden og VRX (`humble`-grenen). Hver person kjører sin egen simulator, og vi deler Dockerfile og kode via git.
 
+**Skal du sette opp simulatoren på en ny PC?** Følg [installasjonsguiden](docs/installasjon.md).
+
 ## Bygg
 ```bash
 docker build -t vrx-sim:humble-garden .

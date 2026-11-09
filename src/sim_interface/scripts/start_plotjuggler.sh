@@ -25,18 +25,47 @@ if [[ -n "$BUF" ]]; then
   fi
 fi
 
-ros2 run plotjuggler plotjuggler --nosplash --layout "$LAYOUT" --start_streamer "ROS2 Topic Subscriber" &
+# Layouten husker strømmen (previouslyLoaded_Streamer), og da spør PlotJuggler «Start Streaming?» og
+# starter ROS 2-abonnementet selv. Ikke bruk --start_streamer i tillegg: det virker som et trykk på
+# Start/Stop for pluginen som er valgt, så strømmen stopper rett etter at den har startet.
+grep -q 'previouslyLoaded_Streamer' "$LAYOUT" || \
+  echo "ADVARSEL: $LAYOUT mangler previouslyLoaded_Streamer, så plottene starter ikke. Lagre layouten mens strømmen går."
+
+ros2 run plotjuggler plotjuggler --nosplash --layout "$LAYOUT" &
 PJ=$!
 
-# Dialogen oppdaterer topic-lista hvert sekund. Prøver igjen til den er borte.
-# Enter sendes bare når dialogen er det aktive vinduet. Havner Enter i hovedvinduet, trykker den
-# Stop, og da stopper plottingen rett etter at den startet (f.eks. hvis noen trykket OK selv først).
-xdotool search --sync --name "$TITLE" >/dev/null
-for _ in $(seq 20); do
-  sleep 4
-  w=$(xdotool search --name "$TITLE" | head -1)
-  [[ -z "$w" ]] && break
-  xdotool windowactivate --sync "$w" 2>/dev/null
-  [[ "$(xdotool getactivewindow)" == "$w" ]] && xdotool key Return
+# Finner et synlig vindu fra PlotJuggler med nøyaktig denne tittelen. Sjekker tittelen her fordi
+# xdotool i imaget ikke finner noe når --class og --name kombineres med --all. --onlyvisible fordi
+# lukkede dialoger kan finnes skjult, og windowactivate --sync bruker ca. 15 s på å gi opp på dem.
+find_window() {
+  local w
+  for w in $(xdotool search --onlyvisible --class plotjuggler 2>/dev/null); do
+    if [[ "$(xdotool getwindowname "$w" 2>/dev/null)" == "$1" ]]; then
+      echo "$w"
+      return
+    fi
+  done
+}
+
+# Enter sendes bare når vinduet er det aktive. Havner Enter i hovedvinduet, trykker den Stop.
+press_enter() {
+  xdotool windowactivate --sync "$1" 2>/dev/null
+  [[ "$(xdotool getactivewindow 2>/dev/null)" == "$1" ]] && xdotool key Return
+}
+
+# Først kommer «Start Streaming?», så topic-dialogen. Dialogen oppdaterer topic-lista hvert sekund,
+# så den får stå i noen sekunder før OK. Prøver igjen til den er borte.
+open=0
+for _ in $(seq 120); do
+  sleep 1
+  w=$(find_window "Start Streaming?")
+  [[ -n "$w" ]] && press_enter "$w"
+  w=$(find_window "$TITLE")
+  if [[ -n "$w" ]]; then
+    open=$((open + 1))
+    (( open >= 3 )) && press_enter "$w"
+  elif (( open > 0 )); then
+    break
+  fi
 done
 wait $PJ
