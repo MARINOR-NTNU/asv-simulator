@@ -6,6 +6,7 @@
 - `ros_gz` må bygges fra kilde mot Garden (`GZ_VERSION=garden`). apt-pakken `ros-humble-ros-gz` er for Fortress og gir feil, så den skal ikke installeres.
 - Standardbygget av Micro XRCE-DDS Agent v2.4.2 feiler, fordi det laster ned Fast-DDS-grenen `2.12.x`, som ikke finnes lenger. Derfor bygges den med `-DUAGENT_USE_SYSTEM_FASTDDS=ON -DUAGENT_USE_SYSTEM_FASTCDR=ON` mot Fast-DDS fra Humble.
 - Uten `--device /dev/dri` tegner Gazebo med CPU-en, og WAM-V går da på bare ca. 6 % av sanntid.
+- Mesa 23.2 i Ubuntu 22.04 kjenner ikke nye AMD-GPU-er (f.eks. Radeon 890M, gfx1150). Da står det `failed to load driver: radeonsi` og Gazebo tegner med llvmpipe på CPU-en, selv med `/dev/dri`. Imaget har derfor Mesa 25 fra `ppa:kisak/turtle` (`kisak-mesa` har ikke jammy lenger). Sjekk med `glxinfo -B` i containeren: den skal vise `radeonsi`, ikke `llvmpipe`.
 - Sjekk at ingen gamle simulatorer kjører før du starter: `docker ps` og `pgrep -af "gz sim"`.
 - Ufarlige advarsler i loggen: `Unable to deserialize sdf::Model` og `GzCard: Cannot anchor item to self`.
 - Hvis `ros2 topic echo` feiler med `!rclpy.ok()`, har ros2-daemonen hengt seg. Bruk `--no-daemon`.

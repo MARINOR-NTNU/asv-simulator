@@ -1,0 +1,44 @@
+{
+  "configById": {
+    "map!p0": {},
+    "Plot!p1": {
+      "title": "/autonomy/heading",
+      "paths": [
+        {
+          "value": "/autonomy/heading.data",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "showLegend": true,
+      "followingViewWidth": 30
+    },
+    "RawMessages!p2": {
+      "topicPath": "/autonomy/imu"
+    },
+    "RawMessages!p3": {
+      "topicPath": "/clock"
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": {
+      "first": "map!p0",
+      "second": "Plot!p1",
+      "direction": "column",
+      "splitPercentage": 50.0
+    },
+    "second": {
+      "first": "RawMessages!p2",
+      "second": "RawMessages!p3",
+      "direction": "column",
+      "splitPercentage": 50.0
+    },
+    "direction": "row",
+    "splitPercentage": 50.0
+  }
+}

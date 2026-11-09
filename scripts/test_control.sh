@@ -75,7 +75,8 @@ elif [[ -n "$REF" ]]; then
 fi
 [[ -z "$SRC" ]] && echo "Tester control sin kode: $(git -C "$SUB" log -1 --format='%h %ci %an: %s')"
 echo "Starter simulatoren og PX4 (første bygg av PX4 kan ta 30-60 min) ..."
-HEADLESS=true CCOMMAND=true docker compose up -d >/dev/null 2>&1
+# AUTONOMY=none, fordi px4_ccommand_test sender ønsket kurs og fart selv.
+HEADLESS=true CCOMMAND=true AUTONOMY=none PLOTJUGGLER=false docker compose up -d >/dev/null 2>&1
 
 # Venter på at PX4 er bygget og koblet til agenten, eller på at bygget feiler.
 echo "PX4"

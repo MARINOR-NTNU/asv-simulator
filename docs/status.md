@@ -1,6 +1,6 @@
 # Status
 
-Sist oppdatert 2026-11-01. PX4-koblingen har sin egen side: [px4.md](px4.md).
+Sist oppdatert 2026-11-03. PX4-koblingen har sin egen side: [px4.md](px4.md).
 
 ## Simulatoren
 - Gruppen har valgt å fortsette i VRX (2026-10-12). `config/unity.yaml` er en mal med plassholdere og er ikke testet.
@@ -9,6 +9,9 @@ Sist oppdatert 2026-11-01. PX4-koblingen har sin egen side: [px4.md](px4.md).
 - `sim_interface` er testet mot VRX med WAM-V (2026-10-12): regulatoren i `stub_controller` holder ønsket heading, timeout setter thrust til 0, og thrust begrenses til 2353 N.
 - `sim.launch.py` er testet headless 2026-10-19 med `control:=px4`, `control:=stub autonomy:=fake` (holder heading og fart) og `sim:=vrx` (lidar, kamera, IMU og heading kommer fram).
 - Real-time factor (headless, med `--device /dev/dri`): 0,99 med vår båt og 0,71 med WAM-V.
+- Fra 2026-11-03 har imaget Mesa 25 (`ppa:kisak/turtle`), så Gazebo tegner med GPU-en også på nye AMD-GPU-er (testet på Radeon 890M: `radeonsi` i stedet for `llvmpipe`, real-time factor 0,95–1,0 headless med vår båt).
+- Fra 2026-11-02 publiserer `position_node` `/autonomy/position` (x øst, y nord i meter) hele tiden, ikke bare med `autonomy:=path`. `waypoint_follower` publiserer den ikke lenger, så det er bare én kilde.
+- Fra 2026-11-02 starter `docker compose up` med `AUTONOMY=fake` og PlotJuggler (`PLOTJUGGLER=true`) som standard. PlotJuggler åpner layouten i `sim_interface/config/plotjuggler.xml` og `scripts/start_plotjuggler.sh` trykker OK i topic-dialogen når simulatoren er klar, så plottene går uten klikk (xdotool i imaget). `test_control.sh` setter `AUTONOMY=none PLOTJUGGLER=false`, så testene er som før.
 
 ## 2D-simulator
 - Partneren lager en egen 2D-simulator (ikke pushet ennå). Den første 2D-simulatoren (`asv_fastsim`) ble fjernet 2026-10-26 og finnes i git-historikken (commit `ce24d1e`).

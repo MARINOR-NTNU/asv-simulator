@@ -21,6 +21,7 @@ def nodes(context):
         Node(package='sim_interface', executable='sensor_relay', parameters=params),
         Node(package='sim_interface', executable='heading_node', parameters=params),
         Node(package='sim_interface', executable='speed_node', parameters=params),
+        Node(package='sim_interface', executable='position_node', parameters=params),
     ]
 
 

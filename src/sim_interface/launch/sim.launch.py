@@ -11,6 +11,8 @@
   control:=none | stub | px4    ingen, stub_controller, eller control sin PX4 (broene og agenten)
   autonomy:=none | fake | path  ingen, fake_heading, eller waypoint_follower
   ccommand:=true                control:=px4: ønsket kurs og fart til PX4 som CCOMMAND (ccommand_bridge)
+  plotjuggler:=true             starter PlotJuggler med config/plotjuggler.xml og plotter topics live
+  rtf:=3                        real-time factor: 3 = tre ganger fortere enn sanntid (over ca. 5 holder ikke nodene følge)
 
 control er ett valg, så stub_controller og PX4 kan ikke styre motorene samtidig.
 """
@@ -76,6 +78,9 @@ def generate_launch_description():
             'forward_thruster', default_value='',
             description='control:=px4: motoren forward_propeller_thrust sendes til, f.eks. bow'),
         DeclareLaunchArgument('agent_port', default_value='8888', description='control:=px4'),
+        DeclareLaunchArgument('plotjuggler', default_value='false', description='true = start PlotJuggler'),
+        DeclareLaunchArgument('rtf', default_value='1.0',
+                              description='real-time factor, 1 = sanntid'),
         DeclareLaunchArgument('ccommand', default_value='false',
                               description='control:=px4: ønsket kurs og fart til PX4 som CCOMMAND'),
 
@@ -114,4 +119,18 @@ def generate_launch_description():
         ExecuteProcess(
             cmd=['MicroXRCEAgent', 'udp4', '-p', arg('agent_port')], output='screen',
             condition=when('control', 'px4')),
+
+        # Verktøy
+        # PlotJuggler med layouten i config/plotjuggler.xml (lagret fra PlotJuggler, File → Save layout).
+        # Skriptet venter på simulatoren og trykker OK i topic-dialogen, så plottene går av seg selv.
+        ExecuteProcess(
+            cmd=['bash', PathJoinSubstitution([share, 'scripts', 'start_plotjuggler.sh']),
+                 PathJoinSubstitution([share, 'config', 'plotjuggler.xml'])],
+            output='screen', condition=when('plotjuggler', 'true')),
+        # Real-time factor settes etter at Gazebo har startet, så den virker i alle verdenene.
+        ExecuteProcess(
+            cmd=['bash', PathJoinSubstitution([share, 'scripts', 'set_rtf.sh']),
+                 PythonExpression(["'sydney_regatta' if '", arg('sim'), "' == 'vrx' else '", arg('world'), "'"]),
+                 arg('rtf')],
+            output='screen', condition=IfCondition(PythonExpression(['float(', arg('rtf'), ') != 1.0']))),
     ])

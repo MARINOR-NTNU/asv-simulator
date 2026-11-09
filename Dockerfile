@@ -40,6 +40,25 @@ RUN . /opt/ros/humble/setup.sh \
  && ldconfig \
  && rm -rf /tmp/xrce_agent
 
+# PlotJuggler for å plotte ROS 2-topics live: ros2 run plotjuggler plotjuggler
+# xdotool trykker OK i topic-dialogen til PlotJuggler ved oppstart (se sim.launch.py).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ros-humble-plotjuggler-ros xdotool \
+ && rm -rf /var/lib/apt/lists/*
+
+# Nyere Mesa, så Gazebo tegner med GPU-en. Mesa 23.2 i Ubuntu 22.04 kjenner ikke nye AMD-GPU-er
+# (f.eks. Radeon 890M, gfx1150), og da faller den tilbake til llvmpipe på CPU-en.
+# kisak/turtle har Mesa 25 for jammy (kisak-mesa har sluttet med jammy). Bare Mesa-pakkene
+# installeres, ikke apt-get upgrade, så resten av imaget er uendret.
+# Sjekk i containeren: glxinfo -B (skal vise radeonsi, ikke llvmpipe).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends software-properties-common \
+ && add-apt-repository -y ppa:kisak/turtle \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends mesa-utils libgl1-mesa-dri libglx-mesa0 libegl-mesa0 \
+      libgbm1 mesa-vulkan-drivers \
+ && rm -rf /var/lib/apt/lists/*
+
 # PX4-meldingene fra control (se px4_msgs/SOURCE.txt). Eget lag etter VRX, så VRX ikke bygges på nytt.
 COPY px4_msgs /root/vrx_ws/src/px4_msgs
 RUN . /opt/ros/humble/setup.sh \

@@ -2,7 +2,6 @@
 import math
 
 import rclpy
-from geometry_msgs.msg import Point
 from rcl_interfaces.msg import SetParametersResult
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -32,7 +31,6 @@ class WaypointFollower(Node):
         self.heading = 0.0
         self.heading_pub = self.create_publisher(Float64, '/autonomy/desired/heading', 10)
         self.speed_pub = self.create_publisher(Float64, '/autonomy/desired/speed', 10)
-        self.position_pub = self.create_publisher(Point, '/autonomy/position', 10)
         self.add_on_set_parameters_callback(self.on_parameters)
         self.create_subscription(
             NavSatFix, '/autonomy/gps/fix', self.on_gps, qos_profile_sensor_data)
@@ -57,7 +55,6 @@ class WaypointFollower(Node):
                 self.origin = (fix.latitude, fix.longitude)
             self.get_logger().info(f'Start. Følger {len(self.waypoints)} punkter.')
         x, y = self.to_local(fix)
-        self.position_pub.publish(Point(x=x, y=y))
 
         if not self.done:
             wx, wy = self.waypoints[self.index]

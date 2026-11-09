@@ -39,6 +39,7 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `thruster_adapter` | Sender `/control/thruster/...` videre til simulatorens motorer. Begrenser verdiene og setter thrust til 0 når kommandoene stopper (0,5 s). |
 | `sensor_relay` | Sender simulatorens sensor-topics videre til `/autonomy/...`. |
 | `heading_node` | Regner ut heading fra IMU-en. |
+| `position_node` | Regner ut posisjonen i meter (x øst, y nord) fra GPS, med nullpunkt der båten er ved første GPS-måling. Kjører alltid. |
 | `fake_heading` | Midlertidig erstatning for autonomy: sender ønsket heading og fart. |
 | `waypoint_follower` | Midlertidig erstatning for autonomy: følger en bane av punkter. |
 | `stub_controller` | Midlertidig erstatning for control: P-regulator fra heading-feil til thrust. |
@@ -53,6 +54,7 @@ Pakken `src/sim_interface` er grensesnittet mellom autonomy/control og simulator
 | `/control/thruster/{left,right,bow}/thrust` | `std_msgs/Float64` | newton |
 | `/control/thruster/{left,right}/angle` | `std_msgs/Float64` | radianer |
 | `/autonomy/heading` | `std_msgs/Float64` | radianer, ENU (0 = øst, positiv mot klokka) |
+| `/autonomy/position` | `geometry_msgs/Point` | meter, x øst og y nord fra startstedet (z = 0) |
 | `/autonomy/desired/heading` | `std_msgs/Float64` | radianer, ENU |
 | `/autonomy/desired/speed` | `std_msgs/Float64` | m/s |
 | `/autonomy/imu` | `sensor_msgs/Imu` | |
@@ -156,7 +158,7 @@ Målt i simulatoren med disse tallene: 0,77 m/s ved 10 N, 1,39 m/s ved 30 N og 2
 ```bash
 ros2 launch sim_interface path.launch.py sim:=vrx_asv path:=path_demo
 ```
-Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båten er når noden starter. `radius` er hvor nær båten må komme et punkt, og `loop: true` kjører banen om igjen. Noden publiserer også båtens posisjon i meter på `/autonomy/position`. Banen tar ikke hensyn til land eller hindringer.
+Punktene står i `config/<path>.yaml` som x, y i meter (øst, nord) fra der båten er når noden starter. `radius` er hvor nær båten må komme et punkt, og `loop: true` kjører banen om igjen. Posisjonen på `/autonomy/position` kommer fra `position_node`, som regner fra der båten er ved første GPS-måling. Har banen fast `origin`, er nullpunktene bare like hvis båten starter der. Banen tar ikke hensyn til land eller hindringer.
 
 ### Åpent hav
 Standardverdenen for vår båt er `open_water` (`asv_gazebo/worlds/open_water.sdf.xacro`): bare en vannflate (6 × 6 km), bølger, sol og himmel, uten land. Båten starter i origo, og GPS-origo er stedet båten startet i `sydney_regatta`, så GPS-posisjonene er de samme i begge verdenene. Bølgene velges ved oppstart med `wave_height` (største utslag i meter, standard 0,11), `wave_period` (sekunder, standard 5) og `wave_direction` (radianer). Korte bølger (2–3 s) gir tydelig stamping og rulling for en så liten båt, mens lange bølger mest løfter den opp og ned. `world:=sydney_regatta` gir VRX sin verden med land og bøyer.
@@ -266,6 +268,10 @@ HEADLESS=true docker compose up              # uten Gazebo-vindu
 | `SCENARIO` | ingen | scenario fra `asv_gazebo/scenarios/`, f.eks. `slalom` |
 | `SENSOR_NOISE`, `WIND_SPEED`, `WIND_DIRECTION`, `WIND_GUST`, `CURRENT_SPEED`, `CURRENT_DIRECTION`, `WAVE_HEIGHT`, `WAVE_PERIOD`, `WAVE_DIRECTION`, `THRUST_TIME_CONSTANT` | av | se «Støy, vind, strøm og motortreghet» |
 | `HEADLESS` | `false` | `true` = uten Gazebo-vindu |
+| `AUTONOMY` | `fake` | `fake` (`fake_heading`: ønsket kurs 0 rad og 1 m/s), `path` (`waypoint_follower`) eller `none` |
+| `CCOMMAND` | `false` | `true` = ønsket kurs og fart til PX4 som CCOMMAND |
+| `RTF` | `1.0` | real-time factor: `3` = tre ganger fortere enn sanntid. Testet til 5 (ga 4,6). Over det holder ikke ROS-nodene følge, og simulatoren går saktere |
+| `PLOTJUGGLER` | `true` | starter PlotJuggler i eget vindu med layouten i `sim_interface/config/plotjuggler.xml` (posisjon, kurs, fart og thrusterne). Sett `false` med `HEADLESS=true` eller uten skjerm |
 | `FORWARD_THRUSTER` | `bow` | motoren `forward_propeller_thrust` sendes til |
 | `PX4_TARGET` | `px4_sitl_proteus` | byggemålet i PX4 (control sitt SITL-bygg med modulene deres) |
 | `PX4_SRC` | submodulen | mappe med en egen kopi av PX4-koden. PX4 bygges og kjøres derfra, med den grenen og de endringene som er der, også ucommittede |
